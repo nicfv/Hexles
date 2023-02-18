@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: 16
       - name: Build Project
-        uses: |
+        run: |
           npm run setup
           npm run build
       - name: Setup Pages
