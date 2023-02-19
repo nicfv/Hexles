@@ -28,6 +28,10 @@ export class Canvas {
      * Set the callback function for every game tick.
      */
     public tick: () => any = () => { };
+    /**
+     * Create a new `Canvas` and append it onto the `parent` element. The number `dt` specifies the `tick` interval.
+     * If `elementSize` is specified, this overrides the size of the HTML canvas element and stretches or compresses the pixels.
+     */
     constructor(parent: Element, width: number, height: number, background: string, dt: number, elementSize: { width: number, height: number } = { width: width, height: height }) {
         // Create the canvas and context, and append it to the parent element
         this.element = document.createElement('canvas');
@@ -50,18 +54,19 @@ export class Canvas {
         this.element.addEventListener('keydown', e => this.onkeydown(e.key));
         this.element.addEventListener('keyup', e => this.onkeyup(e.key));
         this.element.addEventListener('contextmenu', e => e.preventDefault());
+        // Set an interval to call the tick function
         setInterval(() => this.tick(), dt);
     }
     /**
      * Draw a single game object onto the canvas.
      */
-    draw(drawable: Drawable): void {
+    public draw(drawable: Drawable): void {
         drawable.draw(this.context);
     }
     /**
      * Clears the canvas.
      */
-    clear(): void {
+    public clear(): void {
         this.context.clearRect(0, 0, this.element.width, this.element.height);
     }
 }
