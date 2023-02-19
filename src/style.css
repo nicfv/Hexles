@@ -1,0 +1,17 @@
+@import url('https://necolas.github.io/normalize.css/8.0.1/normalize.css');
+
+* {
+    outline: none;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    background: gray;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
