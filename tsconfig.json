@@ -2,6 +2,7 @@
     "compilerOptions": {
         "rootDir": "src",
         "strict": true,
-        "noEmit": true
+        "noEmit": true,
+        "target": "ES2019"
     }
 }

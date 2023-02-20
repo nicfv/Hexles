@@ -13,25 +13,7 @@ export class Vec2 {
      * `a + b`
      */
     public static add(a: Vec2, b: Vec2): Vec2 {
-        return new Vec2(a.x + b.x, a.y + b.y); // TODO: Remove these functions?
-    }
-    /**
-     * `a - b`
-     */
-    public static sub(a: Vec2, b: Vec2): Vec2 {
-        return new Vec2(a.x - b.x, a.y - b.y);
-    }
-    /**
-     * `a * b` (by element)
-     */
-    public static mult(a: Vec2, b: Vec2): Vec2 {
-        return new Vec2(a.x * b.x, a.y * b.y);
-    }
-    /**
-     * Compute the euclidean distance between `a` and `b`
-     */
-    public static dist(a: Vec2, b: Vec2): number {
-        return this.sub(a, b).length();
+        return new Vec2(a.x + b.x, a.y + b.y);
     }
 }
 
@@ -48,12 +30,12 @@ export class Hexagon {
      */
     constructor(center: Vec2, size: number) {
         const SIDES: number = 6;
-        for (let i = 0; i <= SIDES; i++) {
+        for (let i = 0; i < SIDES; i++) {
             const ANGLE: number = i / SIDES * 2 * Math.PI;
-            this.points.push(new Vec2(
-                center.x + size * Math.cos(ANGLE),
-                center.y + size * Math.sin(ANGLE)
-            ));
+            this.points.push(Vec2.add(new Vec2(
+                size * Math.cos(ANGLE),
+                size * Math.sin(ANGLE)
+            ), center));
         }
     }
 }
