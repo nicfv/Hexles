@@ -4,7 +4,7 @@ import { Hexagon, Vec2 } from "./Geometry";
 
 type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | 'NorthEast';
 
-export abstract class Player {
+abstract class Player {
     private static id_count: number = 0;
     private readonly id: number;
     constructor(public readonly color: Color) {
@@ -110,16 +110,24 @@ export class Board implements Drawable {
         for (let x = -radius; x <= radius; x++) {
             for (let y = -radius; y <= radius; y++) {
                 if (Math.abs(x + y) <= radius) {
-                    // this.tiles.push(new Tile(new Vec2(x, y)));
                     this.tiles[x + ',' + y] = new Tile(new Vec2(x, y));
                 }
             }
         }
         const P = new Human(new Color(255, 0, 0));
-        this.tiles['0,0'].capture(P);
-        this.captureTiles(P, 'SouthWest');
-        this.captureTiles(P, 'South');
-        this.captureTiles(P, 'North');
+        this.tiles[radius + ',-' + radius].capture(P);
+        let start = Date.now();
+        for (let i = 0; i < 1e4; i++) {
+            this.captureTiles(P, 'SouthWest');
+            this.captureTiles(P, 'North');
+            this.captureTiles(P, 'SouthEast');
+        }
+        console.log(Date.now() - start);
+        start = Date.now();
+        for (let i = 0; i < 1e4; i++) {
+            this.hasLegalMoves(P);
+        }
+        console.log(Date.now() - start);
     }
     getAllNeutralBorderingTiles(player: Player): Tile[] {
         return Object.values(this.tiles) // Return array of tiles
@@ -129,16 +137,15 @@ export class Board implements Drawable {
             .map(center => center.x + ',' + center.y) // Translate the `Vec2` into the (x,y) key
             .filter((key, i, arr) => arr.indexOf(key) === i) // Remove duplicate keys
             .map(key => this.tiles[key]) // Map keys back to their corresponding tiles
-            .filter(tile => tile.isNeutral()); // Filter only to the neutral tiles
+            .filter(tile => tile?.isNeutral()); // Filter only to the neutral tiles
     }
     getNeutralBorderingTiles(player: Player, direction: Direction): Tile[] {
         return Object.values(this.tiles) // Return array of tiles
             .filter(tile => tile.isOwnedBy(player)) // Filter only tiles that player owns
             .map(tile => tile.getBorderingTileCenter(direction)) // Get each bordering tile in that specified direction
             .map(center => center.x + ',' + center.y) // Translate the `Vec2` into the (x,y) key
-            .filter((key, i, arr) => arr.indexOf(key) === i) // Remove duplicate keys
             .map(key => this.tiles[key]) // Map keys back to their corresponding tiles
-            .filter(tile => tile.isNeutral()); // Filter only to the neutral tiles
+            .filter(tile => tile?.isNeutral()); // Filter only to the neutral tiles
     }
     captureTiles(player: Player, direction: Direction): void {
         this.getNeutralBorderingTiles(player, direction)
