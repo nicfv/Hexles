@@ -69,19 +69,6 @@ export class Tile extends Hexagon implements Drawable {
     public getBorderingTileCenter(direction: Direction): Vec2 {
         return Vec2.add(this.center, Tile.DirectionMap[direction]);
     }
-    /**
-     * Return all bordering tile centers for this tile.
-     */
-    public getAllBorderingTileCenters(): Vec2[] {
-        return [
-            Vec2.add(this.center, Tile.DirectionMap.North),
-            Vec2.add(this.center, Tile.DirectionMap.NorthEast),
-            Vec2.add(this.center, Tile.DirectionMap.NorthWest),
-            Vec2.add(this.center, Tile.DirectionMap.South),
-            Vec2.add(this.center, Tile.DirectionMap.SouthEast),
-            Vec2.add(this.center, Tile.DirectionMap.SouthWest),
-        ];
-    }
     draw(ctx: CanvasRenderingContext2D): void {
         if (this.owner instanceof Player) {
             ctx.fillStyle = this.owner.color.toString();
@@ -114,50 +101,9 @@ export class Board implements Drawable {
                 }
             }
         }
-        const P = new Human(new Color(255, 0, 0));
-        this.tiles[radius + ',-' + radius].capture(P);
-        let start = Date.now();
-        for (let i = 0; i < 1e4; i++) {
-            this.captureTiles(P, 'SouthWest');
-            this.captureTiles(P, 'North');
-            this.captureTiles(P, 'SouthEast');
-        }
-        console.log(Date.now() - start, 'capture tiles');
-        start = Date.now();
-        for (let i = 0; i < 1e4; i++) {
-            this.hasLegalMoves(P);
-        }
-        console.log(Date.now() - start, 'has legal moves 1');
-        start = Date.now();
-        for (let i = 0; i < 1e4; i++) {
-            this.hasLegalMoves2(P);
-        }
-        console.log(Date.now() - start, 'has legal moves 2');
-        start = Date.now();
-        for (let i = 0; i < 1e4; i++) {
-            this.hasLegalMoves3(P);
-        }
-        console.log(Date.now() - start, 'has legal moves 3');
     }
-    getAllNeutralBorderingTiles(player: Player): Tile[] {
-        return Object.values(this.tiles) // Return array of tiles
-            .filter(tile => tile.isOwnedBy(player)) // Filter only tiles that player owns
-            .map(tile => tile.getAllBorderingTileCenters()) // Get all bordering tiles
-            .flat() // Flatten the array
-            .map(center => center.x + ',' + center.y) // Translate the `Vec2` into the (x,y) key
-            .filter((key, i, arr) => arr.indexOf(key) === i) // Remove duplicate keys
-            .map(key => this.tiles[key]) // Map keys back to their corresponding tiles
-            .filter(tile => tile?.isNeutral()); // Filter only to the neutral tiles
-    }
-    getAllNeutralBorderingTiles2(player: Player): Tile[] {
-        return [...new Set(Object.values(this.tiles) // Return array of tiles
-            .filter(tile => tile.isOwnedBy(player)) // Filter only tiles that player owns
-            .map(tile => tile.getAllBorderingTileCenters()) // Get all bordering tiles
-            .flat() // Flatten the array
-            .map(center => center.x + ',' + center.y))] // Translate the `Vec2` into the (x,y) key
-            // Remove duplicate keys
-            .map(key => this.tiles[key]) // Map keys back to their corresponding tiles
-            .filter(tile => tile?.isNeutral()); // Filter only to the neutral tiles
+    public SET_PLAYER_IN_CENTER_THIS_IS_A_TESTING_FUNCTION(player: Player): void {
+        this.tiles['0,0'].capture(player);
     }
     private getNeutralBorderingTiles(player: Player, direction: Direction): Tile[] {
         return Object.values(this.tiles) // Return array of tiles
@@ -166,23 +112,30 @@ export class Board implements Drawable {
             .map(center => this.tiles[center.x + ',' + center.y]) // Map (x,y) keys back to their corresponding tiles
             .filter(tile => tile?.isNeutral()); // Filter only to the neutral tiles
     }
-    captureTiles(player: Player, direction: Direction): void {
+    /**
+     * Returns the number of tiles a player can capture in any specified direction.
+     * For AI players, this number is the weight/likelihood of capturing in that specific direction.
+     */
+    public captureWeight(player: Player, direction: Direction): number {
+        return this.getNeutralBorderingTiles(player, direction).length;
+    }
+    /**
+     * Cause `player` to capture tiles in direction `direction`.
+     */
+    public captureTiles(player: Player, direction: Direction): void {
         this.getNeutralBorderingTiles(player, direction)
             .forEach(tile => tile.capture(player));
     }
-    hasLegalMoves(player: Player): boolean {
-        return this.getAllNeutralBorderingTiles(player).length === 0;
-    }
-    hasLegalMoves2(player: Player): boolean {
-        return this.getAllNeutralBorderingTiles2(player).length === 0;
-    }
-    hasLegalMoves3(player: Player): boolean {
-        return this.getNeutralBorderingTiles(player, 'North').length === 0 &&
-            this.getNeutralBorderingTiles(player, 'NorthEast').length === 0 &&
-            this.getNeutralBorderingTiles(player, 'NorthWest').length === 0 &&
-            this.getNeutralBorderingTiles(player, 'South').length === 0 &&
-            this.getNeutralBorderingTiles(player, 'SouthEast').length === 0 &&
-            this.getNeutralBorderingTiles(player, 'SouthWest').length === 0;
+    /**
+     * Determine if `player` has any legal moves left on this board.
+     */
+    public hasLegalMoves(player: Player): boolean {
+        return this.captureWeight(player, 'North') === 0 &&
+            this.captureWeight(player, 'NorthEast') === 0 &&
+            this.captureWeight(player, 'NorthWest') === 0 &&
+            this.captureWeight(player, 'SouthEast') === 0 &&
+            this.captureWeight(player, 'SouthWest') === 0 &&
+            this.captureWeight(player, 'South') === 0;
     }
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
