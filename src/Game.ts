@@ -1,30 +1,74 @@
-import { Color } from "./Color";
 import { Drawable } from "./Engine";
-import { Hexagon, Vec2 } from "./Geometry";
+import { Hexagon, Math2, Vec2 } from "./Geometry";
 
 type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | 'NorthEast';
+type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Blue' | 'Violet';
 
+/**
+ * Represents any player in the game.
+ */
 abstract class Player {
+    private static readonly ColorMap: { [K in Color]: { readonly value: string, inUse: boolean } } = {
+        'Red': { value: '#F00', inUse: false },
+        'Orange': { value: '#F90', inUse: false },
+        'Yellow': { value: '#CC0', inUse: false },
+        'Green': { value: '#090', inUse: false },
+        'Blue': { value: '#00F', inUse: false },
+        'Violet': { value: '#0CF', inUse: false },
+    };
     private static id_count: number = 0;
     private readonly id: number;
-    constructor(public readonly color: Color) {
+    /**
+     * Create a new player.
+     */
+    constructor(private readonly color: Color) {
         this.id = Player.id_count++;
+        if (Player.ColorMap[color].inUse) {
+            // Return the first unused color.
+            this.color = <Color>Object.entries(Player.ColorMap).find(([, val]) => !val.inUse)?.[0];
+            if (!this.color) {
+                throw new Error('All colors are in use.');
+            }
+        }
+        Player.ColorMap[this.color].inUse = true;
     }
-    public equals(other: Player): boolean {
+    /**
+     * Reset the static class values.
+     */
+    public static reset(): void {
+        Player.id_count = 0;
+        Object.values(Player.ColorMap).forEach(val => val.inUse = false);
+    }
+    /**
+     * Determine if this player is the object represented by `other`.
+     */
+    public is(other: Player): boolean {
         return this.id === other.id;
+    }
+    /**
+     * Return the uniqe color of this player.
+     */
+    public getColor(): string {
+        return Player.ColorMap[this.color].value;
     }
 }
 
-export class Human extends Player {
+class Human extends Player {
     constructor(color: Color) {
         super(color);
+    }
+}
+
+class AI extends Player {
+    constructor() {
+        super('Red');
     }
 }
 
 /**
  * Represents a single tile in the game board.
  */
-export class Tile extends Hexagon implements Drawable {
+class Tile extends Hexagon implements Drawable {
     private static readonly size: number = 10;
     private static readonly DirectionMap: { [K in Direction]: Vec2 } = {
         'North': new Vec2(0, -1),
@@ -61,7 +105,7 @@ export class Tile extends Hexagon implements Drawable {
      * Return `true` if `player` is the owner of this tile.
      */
     public isOwnedBy(player: Player): boolean {
-        return this.owner?.equals(player) ?? false;
+        return this.owner?.is(player) ?? false;
     }
     /**
      * Return the center of the bordering tile in the specified direction.
@@ -71,7 +115,7 @@ export class Tile extends Hexagon implements Drawable {
     }
     draw(ctx: CanvasRenderingContext2D): void {
         if (this.owner instanceof Player) {
-            ctx.fillStyle = this.owner.color.toString();
+            ctx.fillStyle = this.owner.getColor();
         } else {
             ctx.fillStyle = 'lightgray';
         }
@@ -88,7 +132,7 @@ export class Tile extends Hexagon implements Drawable {
 /**
  * Represents the game board.
  */
-export class Board implements Drawable {
+class Board implements Drawable {
     private readonly tiles: { [i: string]: Tile } = {};
     /**
      * Construct a new game board with a specified size.
@@ -102,8 +146,8 @@ export class Board implements Drawable {
             }
         }
     }
-    public SET_PLAYER_IN_CENTER_THIS_IS_A_TESTING_FUNCTION(player: Player): void {
-        this.tiles['0,0'].capture(player);
+    public SET_PLAYER_IN_CENTER_THIS_IS_A_TESTING_FUNCTION(player: Player, center: string = '0,0'): void {
+        this.tiles[center].capture(player);
     }
     private getNeutralBorderingTiles(player: Player, direction: Direction): Tile[] {
         return Object.values(this.tiles) // Return array of tiles
@@ -142,5 +186,37 @@ export class Board implements Drawable {
         ctx.translate(150, 100);
         Object.values(this.tiles).forEach(tile => tile.draw(ctx));
         ctx.restore();
+    }
+}
+
+/**
+ * Stores all the game's core logic.
+ */
+export class Game implements Drawable {
+    private static readonly MAX_PLAYERS: number = 6;
+    private static readonly MIN_PLAYERS: number = 1;
+    private readonly board: Board;
+    private readonly players: Player[];
+    constructor(numHumans: number, numAI: number, boardSize: number, favoriteColor: Color) {
+        Player.reset();
+        this.players = [];
+        numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
+        numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
+        numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
+        console.log(numHumans, numAI); // TODO
+        for (let i = 0; i < numHumans; i++) {
+            this.players.push(new Human(favoriteColor));
+        }
+        for (let i = 0; i < numAI; i++) {
+            this.players.push(new AI());
+        }
+        this.board = new Board(boardSize);
+        this.players.forEach((player, i) => this.board.SET_PLAYER_IN_CENTER_THIS_IS_A_TESTING_FUNCTION(player, '0,' + i)); // TODO
+    }
+    public CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION(direction: Direction): void {
+        this.board.captureTiles(this.players[0], direction);
+    }
+    draw(ctx: CanvasRenderingContext2D): void {
+        this.board.draw(ctx);
     }
 }

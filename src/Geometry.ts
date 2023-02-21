@@ -1,4 +1,16 @@
 /**
+ * Contains advanced mathematical functions.
+ */
+export class Math2 {
+    /**
+     * Clamp a number `x` to the range `[min,max]`
+     */
+    public static clamp(x: number, min: number, max: number): number {
+        return (x < min ? min : (x > max ? max : x));
+    }
+}
+
+/**
  * Represents an `(x,y)` coordinate pair.
  */
 export class Vec2 {

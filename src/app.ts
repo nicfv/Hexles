@@ -1,43 +1,42 @@
-import { Color } from "./Color";
 import { Canvas } from "./Engine";
-import { Board, Human } from "./Game";
+import { Game } from "./Game";
 
 const CANV = new Canvas(document.body, 300, 200, 'white', 50, { width: 600, height: 400 });
 
-const board = new Board(5),
-    you = new Human(new Color(0, 190, 20));
+// const board = new Board(5),
+//     you = new Human(new Color(0, 190, 20));
 
-board.SET_PLAYER_IN_CENTER_THIS_IS_A_TESTING_FUNCTION(you);
+const game = new Game(1, 10, 5, 'Green');
 
 CANV.tick = () => {
     CANV.clear();
-    CANV.draw(board);
+    CANV.draw(game);
 };
 
 CANV.onkeydown = key => {
     switch (key) {
         case ('q'): {
-            board.captureTiles(you, 'NorthWest');
+            game.CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION('NorthWest');
             break;
         }
         case ('w'): {
-            board.captureTiles(you, 'North');
+            game.CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION('North');
             break;
         }
         case ('e'): {
-            board.captureTiles(you, 'NorthEast');
+            game.CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION('NorthEast');
             break;
         }
         case ('a'): {
-            board.captureTiles(you, 'SouthWest');
+            game.CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION('SouthWest');
             break;
         }
         case ('s'): {
-            board.captureTiles(you, 'South');
+            game.CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION('South');
             break;
         }
         case ('d'): {
-            board.captureTiles(you, 'SouthEast');
+            game.CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION('SouthEast');
             break;
         }
     }
