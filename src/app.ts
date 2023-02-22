@@ -3,9 +3,6 @@ import { Game } from "./Game";
 
 const CANV = new Canvas(document.body, 300, 200, 'white', 50, { width: 600, height: 400 });
 
-// const board = new Board(5),
-//     you = new Human(new Color(0, 190, 20));
-
 const game = new Game(1, 10, 5, 'Green');
 
 CANV.tick = () => {
