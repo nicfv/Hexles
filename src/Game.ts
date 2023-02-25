@@ -4,6 +4,7 @@ import { Hexagon, Math2, Vec2 } from "./Geometry";
 type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | 'NorthEast';
 type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Blue' | 'Violet';
 type SpawnMode = 'fair' | 'random';
+type Rotation = 'CW' | 'CCW';
 
 /**
  * Represents any player in the game.
@@ -149,7 +150,7 @@ class Board implements Drawable {
     /**
      * Construct a new game board with a specified size.
      */
-    constructor(public readonly radius: number, wallDensity: number) {
+    constructor(public readonly radius: number, wallDensity: number = 0, private readonly normalizedCenter: Vec2 = new Vec2(0.5, 0.5)) {
         for (let x = -radius; x <= radius; x++) {
             for (let y = -radius; y <= radius; y++) {
                 if (Math.abs(x + y) <= radius) {
@@ -215,11 +216,56 @@ class Board implements Drawable {
             this.captureWeight(player, 'SouthWest') > 0 ||
             this.captureWeight(player, 'South') > 0;
     }
+    /**
+     * Clear all tiles on the board.
+     */
+    public clear(): void {
+        Object.values(this.tiles).forEach(tile => tile.clear());
+    }
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
-        ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.translate(ctx.canvas.width * this.normalizedCenter.x, ctx.canvas.height * this.normalizedCenter.y);
         Object.values(this.tiles).forEach(tile => tile.draw(ctx));
         ctx.restore();
+    }
+}
+
+/**
+ * Represents a game pad for directional input.
+ */
+class DPad extends Board {
+    private static readonly DirectionOrderCW: Direction[] =
+        ['North', 'NorthEast', 'SouthEast', 'South', 'SouthWest', 'NorthWest'];
+    private direction: Direction;
+    /**
+     * Create a new instance of `DPad`
+     */
+    constructor(private readonly player: Player) {
+        super(1, 0, new Vec2(0.875, 0.875));
+        this.direction = 'North';
+        this.refresh();
+    }
+    /**
+     * Rotate the directional pad left (CCW) or right (CW).
+     */
+    public rotate(way: Rotation): void {
+        const dx: number = (way === 'CW' ? 1 : -1),
+            numDirections: number = DPad.DirectionOrderCW.length,
+            directionIdx: number = DPad.DirectionOrderCW.indexOf(this.direction) ?? 0,
+            nextIdx = (directionIdx + numDirections + dx) % numDirections;
+        this.direction = DPad.DirectionOrderCW[nextIdx];
+        this.refresh();
+    }
+    /**
+     * Return the direction currently selected by this `DPad`
+     */
+    public getDirection(): Direction {
+        return this.direction;
+    }
+    private refresh(): void {
+        this.clear();
+        this.spawn(this.player, new Vec2(0, 0));
+        this.captureTiles(this.player, this.direction);
     }
 }
 
@@ -231,9 +277,16 @@ export class Game implements Drawable {
     private static readonly MAX_PLAYERS: number = 6;
     private readonly board: Board;
     private readonly players: Player[];
+    private readonly dPads: DPad[];
+    private currentPlayer: number;
+    /**
+     * Start a new game with specified parameters.
+     */
     constructor(numHumans: number, numAI: number, boardSize: number, favoriteColor: Color, spawnMode: SpawnMode, wallDensity: number) {
         Player.reset();
         this.players = [];
+        this.dPads = [];
+        this.currentPlayer = 0;
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
@@ -243,6 +296,7 @@ export class Game implements Drawable {
         for (let i = 0; i < numAI; i++) {
             this.players.push(new AI());
         }
+        this.players.forEach(player => this.dPads.push(new DPad(player)));
         this.board = new Board(boardSize, wallDensity);
         this.spawn(spawnMode);
     }
@@ -282,10 +336,36 @@ export class Game implements Drawable {
             }
         }
     }
-    public CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION(direction: Direction): void {
-        this.board.captureTiles(this.players[0], direction);
+    public humanInput(rotation: Rotation): void {
+        if (this.players[this.currentPlayer] instanceof Human) {
+            this.dPads[this.currentPlayer].rotate(rotation);
+        }
+    }
+    public humanSelect(): void {
+        if (this.players[this.currentPlayer] instanceof Human) {
+            this.takeTurn();
+        }
+    }
+    private aiInput(): void {
+        // TODO
+    }
+    private aiSelect(): void {
+        // TODO
+    }
+    private takeTurn(): void {
+        const currPlayer = this.players[this.currentPlayer],
+            currDir = this.dPads[this.currentPlayer].getDirection();
+        if (this.board.captureWeight(currPlayer, currDir) > 0) {
+            this.board.captureTiles(currPlayer, currDir);
+            let counter = 0;
+            do {
+                counter++;
+                this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+            } while (!this.board.hasLegalMoves(this.players[this.currentPlayer]) && counter < this.players.length);
+        }
     }
     draw(ctx: CanvasRenderingContext2D): void {
         this.board.draw(ctx);
+        this.dPads[this.currentPlayer].draw(ctx);
     }
 }
