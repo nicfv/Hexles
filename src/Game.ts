@@ -3,6 +3,7 @@ import { Hexagon, Math2, Vec2 } from "./Geometry";
 
 type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | 'NorthEast';
 type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Blue' | 'Violet';
+type SpawnMode = 'fair' | 'random';
 
 /**
  * Represents any player in the game.
@@ -78,26 +79,37 @@ class Tile extends Hexagon implements Drawable {
         'SouthEast': new Vec2(1, 0),
         'SouthWest': new Vec2(-1, 1),
     };
-    private readonly center: Vec2;
     private owner: Player | undefined;
+    private isWall: boolean = false;
     /**
      * Create a new tile centered at `center` (measured in tiles)
      */
-    constructor(center: Vec2) {
+    constructor(private readonly center: Vec2) {
         super(new Vec2(center.x * 3 / 2 * Tile.size, (center.x + 2 * center.y) * Math.sqrt(3) / 2 * Tile.size), Tile.size);
-        this.center = center;
     }
     /**
      * Determine if tis tile has yet to be captured.
      */
     public isNeutral(): boolean {
-        return this.owner === undefined;
+        return this.owner === undefined && !this.isWall;
     }
     /**
-     * Capture this tile, overwriting any previous owner.
+     * Build a wall on this tile.
      */
-    public capture(player: Player): void {
-        this.owner = player;
+    public buildWall(): void {
+        if (this.isNeutral()) {
+            this.isWall = true;
+        }
+    }
+    /**
+     * Make an attempt to capture this tile, return `true` if the tile was captured.
+     */
+    public capture(player: Player): boolean {
+        if (this.isNeutral()) {
+            this.owner = player;
+            return true;
+        }
+        return false;
     }
     /**
      * Uncapture this tile.
@@ -118,7 +130,7 @@ class Tile extends Hexagon implements Drawable {
         return Vec2.add(this.center, Tile.DirectionMap[direction]);
     }
     draw(ctx: CanvasRenderingContext2D): void {
-        ctx.fillStyle = this.owner?.getColor() ?? 'lightgray';
+        ctx.fillStyle = this.owner?.getColor() ?? (this.isWall ? 'dimgray' : 'lightgray');
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -137,11 +149,14 @@ class Board implements Drawable {
     /**
      * Construct a new game board with a specified size.
      */
-    constructor(radius: number) {
+    constructor(public readonly radius: number, wallDensity: number) {
         for (let x = -radius; x <= radius; x++) {
             for (let y = -radius; y <= radius; y++) {
                 if (Math.abs(x + y) <= radius) {
                     this.tiles[x + ',' + y] = new Tile(new Vec2(x, y));
+                    if (Math.random() < wallDensity) {
+                        this.tiles[x + ',' + y].buildWall();
+                    }
                 }
             }
         }
@@ -163,6 +178,17 @@ class Board implements Drawable {
         }
         tile.capture(player);
         return true;
+    }
+    /**
+     * Spawn `player` at a random location on the board.
+     */
+    public spawnRandom(player: Player): void {
+        const neutralTiles: Tile[] = Object.values(this.tiles).filter(tile => tile.isNeutral());
+        if (neutralTiles.length === 0) {
+            throw new Error('No neutral tiles left.');
+        }
+        const tile = neutralTiles[Math2.randomInt(0, neutralTiles.length)];
+        tile.capture(player);
     }
     /**
      * Returns the number of tiles a player can capture in any specified direction.
@@ -201,25 +227,60 @@ class Board implements Drawable {
  * Stores all the game's core logic.
  */
 export class Game implements Drawable {
-    private static readonly MAX_PLAYERS: number = 6;
     private static readonly MIN_PLAYERS: number = 1;
+    private static readonly MAX_PLAYERS: number = 6;
     private readonly board: Board;
     private readonly players: Player[];
-    constructor(numHumans: number, numAI: number, boardSize: number, favoriteColor: Color) {
+    constructor(numHumans: number, numAI: number, boardSize: number, favoriteColor: Color, spawnMode: SpawnMode, wallDensity: number) {
         Player.reset();
         this.players = [];
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
-        console.log(numHumans, numAI); // TODO
         for (let i = 0; i < numHumans; i++) {
             this.players.push(new Human(favoriteColor));
         }
         for (let i = 0; i < numAI; i++) {
             this.players.push(new AI());
         }
-        this.board = new Board(boardSize);
-        this.players.forEach((player, i) => this.board.spawn(player, new Vec2(i, i))); // TODO
+        this.board = new Board(boardSize, wallDensity);
+        this.spawn(spawnMode);
+    }
+    private spawn(mode: SpawnMode): void {
+        switch (mode) {
+            case ('fair'): {
+                const spawnPoints: Vec2[] = [
+                    // [0] North
+                    new Vec2(0, -this.board.radius),
+                    // [1] NorthEast
+                    new Vec2(this.board.radius, -this.board.radius),
+                    // [2] SouthEast
+                    new Vec2(this.board.radius, 0),
+                    // [3] South
+                    new Vec2(0, this.board.radius),
+                    // [4] SouthWest
+                    new Vec2(-this.board.radius, this.board.radius),
+                    // [5] NorthWest
+                    new Vec2(-this.board.radius, 0),
+                ], spawnLocations: number[][] = [
+                    [0],
+                    [0, 3],
+                    [0, 2, 4],
+                    [1, 2, 4, 5],
+                    [0, 1, 2, 4, 5],
+                    [0, 1, 2, 3, 4, 5],
+                ];
+                this.players.forEach((player, i) => this.board.spawn(player, spawnPoints[spawnLocations[this.players.length - 1][i]]));
+                break;
+            }
+            case ('random'): {
+                this.players.forEach(player => this.board.spawnRandom(player));
+                break;
+            }
+            default: {
+                throw new Error('Invalid spawn mode: "' + mode + '"');
+            }
+        }
     }
     public CAPTURE_TILES_THIS_IS_A_TESTING_FUNCTION(direction: Direction): void {
         this.board.captureTiles(this.players[0], direction);

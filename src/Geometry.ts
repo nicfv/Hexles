@@ -8,6 +8,12 @@ export class Math2 {
     public static clamp(x: number, min: number, max: number): number {
         return (x < min ? min : (x > max ? max : x));
     }
+    /**
+     * Return a random integer in the range `[min,max)`
+     */
+    public static randomInt(min: number, max: number): number {
+        return Math.floor(Math.random() * (max - min) + min);
+    }
 }
 
 /**
