@@ -314,8 +314,8 @@ export class Game implements Drawable {
         Player.reset();
         this.players = [];
         this.dPads = [];
-        this.turnNumber = 1;
-        this.currentPlayer = 0;
+        this.turnNumber = 0;
+        this.currentPlayer = -1;
         this.turnText = new Text('Start game', 12, new Vec2(0.01, 0.01), false);
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
@@ -329,9 +329,7 @@ export class Game implements Drawable {
         this.players.forEach(player => this.dPads.push(new DPad(player)));
         this.board = new Board(boardSize, wallDensity);
         this.spawn(spawnMode);
-        if (numHumans === 0) {
-            this.aiInput();
-        }
+        this.nextTurn();
     }
     private spawn(mode: SpawnMode): void {
         switch (mode) {
@@ -410,23 +408,26 @@ export class Game implements Drawable {
     private takeTurn(): void {
         if (this.board.captureWeight(this.currPlayer(), this.currDir()) > 0) {
             this.board.captureTiles(this.currPlayer(), this.currDir());
-            let counter = 0;
-            do {
-                counter++;
-                this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
-                if (this.currentPlayer === 0) {
-                    this.turnNumber++; // Note: increment turn number when player ID loops back to 0
-                }
-            } while (!this.board.hasLegalMoves(this.currPlayer()) && counter < this.players.length);
-            if (this.isGameOver()) {
-                this.turnText.setText('');
-                this.gameOverText = new Text(
-                    this.players.map(player => player.getName() + ' captured ' + this.board.numTilesOwnedBy(player) + ' tiles').join('\n'),
-                    12, new Vec2(0.1, 0.1), true);
-            } else {
-                this.turnText.setText('Turn ' + this.turnNumber + ': ' + this.currPlayer().getName());
-                this.aiInput();
+            this.nextTurn();
+        }
+    }
+    private nextTurn(): void {
+        let counter = 0;
+        do {
+            counter++;
+            this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+            if (this.currentPlayer === 0) {
+                this.turnNumber++; // Note: increment turn number when player ID loops back to 0
             }
+        } while (!this.board.hasLegalMoves(this.currPlayer()) && counter < this.players.length);
+        if (this.isGameOver()) {
+            this.turnText.setText('');
+            this.gameOverText = new Text(
+                this.players.map(player => player.getName() + ' captured ' + this.board.numTilesOwnedBy(player) + ' tiles').join('\n'),
+                12, new Vec2(0.1, 0.1), true);
+        } else {
+            this.turnText.setText('Turn ' + this.turnNumber + ': ' + this.currPlayer().getName());
+            this.aiInput();
         }
     }
     /**
