@@ -2,7 +2,7 @@ import { Drawable } from "./Engine";
 import { Hexagon, Math2, Vec2 } from "./Geometry";
 
 type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | 'NorthEast';
-type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Blue' | 'Violet';
+type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Cyan' | 'Blue' | 'Violet';
 type SpawnMode = 'fair' | 'random';
 type Rotation = 'CW' | 'CCW';
 
@@ -12,11 +12,12 @@ type Rotation = 'CW' | 'CCW';
 abstract class Player {
     private static readonly ColorMap: { [K in Color]: { readonly value: string, inUse: boolean } } = {
         'Red': { value: '#F00', inUse: false },
-        'Orange': { value: '#F90', inUse: false },
-        'Yellow': { value: '#CC0', inUse: false },
-        'Green': { value: '#090', inUse: false },
+        'Orange': { value: '#F80', inUse: false },
+        'Yellow': { value: '#CD1', inUse: false },
+        'Green': { value: '#080', inUse: false },
+        'Cyan': { value: '#0CF', inUse: false },
         'Blue': { value: '#00F', inUse: false },
-        'Violet': { value: '#0CF', inUse: false },
+        'Violet': { value: '#C0F', inUse: false },
     };
     private static id_count: number = 0;
     private readonly id: number;
