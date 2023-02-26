@@ -271,7 +271,10 @@ class DPad extends Board {
  */
 class Text implements Drawable {
     private progress: number = 0;
-    constructor(private readonly value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = new Vec2(0, 0), private readonly writing: boolean = false) { }
+    constructor(private value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = new Vec2(0, 0), private readonly writing: boolean = false) { }
+    public setText(value: string): void {
+        this.value = value;
+    }
     draw(ctx: CanvasRenderingContext2D): void {
         if (this.writing) {
             this.progress++;
@@ -300,7 +303,9 @@ export class Game implements Drawable {
     private readonly board: Board;
     private readonly players: Player[];
     private readonly dPads: DPad[];
+    private turnNumber: number;
     private currentPlayer: number;
+    private readonly turnText: Text;
     private gameOverText: Text | undefined;
     /**
      * Start a new game with specified parameters.
@@ -309,7 +314,9 @@ export class Game implements Drawable {
         Player.reset();
         this.players = [];
         this.dPads = [];
+        this.turnNumber = 1;
         this.currentPlayer = 0;
+        this.turnText = new Text('Start game', 12, new Vec2(0.01, 0.01), false);
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
@@ -363,27 +370,27 @@ export class Game implements Drawable {
         }
     }
     public humanInput(rotation: Rotation): void {
-        if (!this.players[this.currentPlayer].isAI) {
+        if (!this.currPlayer().isAI) {
             this.dPads[this.currentPlayer].rotate(rotation);
         }
     }
     public humanSelect(): void {
         if (this.isGameOver()) {
             this.gameOverText = undefined;
-        } else if (!this.players[this.currentPlayer].isAI) {
+        } else if (!this.currPlayer().isAI) {
             this.takeTurn();
         }
     }
     private aiInput(): void {
-        if (this.players[this.currentPlayer].isAI) {
+        if (this.currPlayer().isAI) {
             const bucketNames: Direction[] = ['North', 'NorthEast', 'NorthWest', 'South', 'SouthEast', 'SouthWest'],
-                buckets: number[] = bucketNames.map(name => this.board.captureWeight(this.players[this.currentPlayer], name)),
+                buckets: number[] = bucketNames.map(name => this.board.captureWeight(this.currPlayer(), name)),
                 selectedDirection = bucketNames[Math2.selectRandomBucket(buckets)]; // Note: is `undefined` when there are no legal moves
             let thinkTicks = 5, selectTicks = 5;
             const aiTick = setInterval(() => {
                 if (thinkTicks > 0) {
                     thinkTicks--;
-                } else if (this.dPads[this.currentPlayer].getDirection() !== selectedDirection) {
+                } else if (this.currDir() !== selectedDirection) {
                     this.dPads[this.currentPlayer].rotate('CW');
                 } else if (selectTicks > 0) {
                     selectTicks--;
@@ -394,21 +401,30 @@ export class Game implements Drawable {
             }, 100);
         }
     }
+    private currPlayer(): Player {
+        return this.players[this.currentPlayer];
+    }
+    private currDir(): Direction {
+        return this.dPads[this.currentPlayer].getDirection();
+    }
     private takeTurn(): void {
-        const currPlayer = this.players[this.currentPlayer],
-            currDir = this.dPads[this.currentPlayer].getDirection();
-        if (this.board.captureWeight(currPlayer, currDir) > 0) {
-            this.board.captureTiles(currPlayer, currDir);
+        if (this.board.captureWeight(this.currPlayer(), this.currDir()) > 0) {
+            this.board.captureTiles(this.currPlayer(), this.currDir());
             let counter = 0;
             do {
                 counter++;
                 this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
-            } while (!this.board.hasLegalMoves(this.players[this.currentPlayer]) && counter < this.players.length);
+                if (this.currentPlayer === 0) {
+                    this.turnNumber++; // Note: increment turn number when player ID loops back to 0
+                }
+            } while (!this.board.hasLegalMoves(this.currPlayer()) && counter < this.players.length);
             if (this.isGameOver()) {
+                this.turnText.setText('');
                 this.gameOverText = new Text(
                     this.players.map(player => player.getName() + ' captured ' + this.board.numTilesOwnedBy(player) + ' tiles').join('\n'),
                     12, new Vec2(0.1, 0.1), true);
             } else {
+                this.turnText.setText('Turn ' + this.turnNumber + ': ' + this.currPlayer().getName());
                 this.aiInput();
             }
         }
@@ -430,6 +446,7 @@ export class Game implements Drawable {
             this.gameOverText?.draw(ctx);
         } else {
             this.dPads[this.currentPlayer].draw(ctx);
+            this.turnText.draw(ctx);
         }
     }
 }
