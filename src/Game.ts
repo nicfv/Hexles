@@ -257,6 +257,13 @@ class DPad extends Board {
         this.refresh();
     }
     /**
+     * Set the current direction of this `DPad`
+     */
+    public setDirection(direction: Direction): void {
+        this.direction = direction;
+        this.refresh();
+    }
+    /**
      * Return the direction currently selected by this `DPad`
      */
     public getDirection(): Direction {
@@ -299,6 +306,9 @@ export class Game implements Drawable {
         this.players.forEach(player => this.dPads.push(new DPad(player)));
         this.board = new Board(boardSize, wallDensity);
         this.spawn(spawnMode);
+        if (numHumans === 0) {
+            this.aiInput();
+        }
     }
     private spawn(mode: SpawnMode): void {
         switch (mode) {
@@ -347,10 +357,22 @@ export class Game implements Drawable {
         }
     }
     private aiInput(): void {
-        // TODO
-    }
-    private aiSelect(): void {
-        // TODO
+        if (this.players[this.currentPlayer] instanceof AI) {
+            const bucketNames: Direction[] = ['North', 'NorthEast', 'NorthWest', 'South', 'SouthEast', 'SouthWest'],
+                buckets: number[] = bucketNames.map(name => this.board.captureWeight(this.players[this.currentPlayer], name)),
+                selectedDirection = bucketNames[Math2.selectRandomBucket(buckets)]; // Note: is `undefined` when there are no legal moves
+            let thinkTicks = 2;
+            const aiTick = setInterval(() => {
+                if (thinkTicks > 0) {
+                    thinkTicks--;
+                } else if (this.dPads[this.currentPlayer].getDirection() !== selectedDirection) {
+                    this.dPads[this.currentPlayer].setDirection(selectedDirection);
+                } else {
+                    this.takeTurn();
+                    clearInterval(aiTick);
+                }
+            }, 500);
+        }
     }
     private takeTurn(): void {
         const currPlayer = this.players[this.currentPlayer],
@@ -362,6 +384,9 @@ export class Game implements Drawable {
                 counter++;
                 this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
             } while (!this.board.hasLegalMoves(this.players[this.currentPlayer]) && counter < this.players.length);
+            if (counter < this.players.length) {
+                this.aiInput();
+            }
         }
     }
     draw(ctx: CanvasRenderingContext2D): void {

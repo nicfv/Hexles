@@ -14,6 +14,20 @@ export class Math2 {
     public static randomInt(min: number, max: number): number {
         return Math.floor(Math.random() * (max - min) + min);
     }
+    /**
+     * Return a weighted random bucket 0-indexed ID from an array of buckets.
+     */
+    public static selectRandomBucket(bucketSizes: number[]): number {
+        const startVal: number[] = [];
+        let accumulation = 0;
+        for (let s of bucketSizes) {
+            accumulation += s;
+            startVal.push(accumulation);
+        }
+        const size = accumulation,
+            ran = Math2.randomInt(0, size);
+        return startVal.findIndex(s => ran < s);
+    }
 }
 
 /**
