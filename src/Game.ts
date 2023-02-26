@@ -257,13 +257,6 @@ class DPad extends Board {
         this.refresh();
     }
     /**
-     * Set the current direction of this `DPad`
-     */
-    public setDirection(direction: Direction): void {
-        this.direction = direction;
-        this.refresh();
-    }
-    /**
      * Return the direction currently selected by this `DPad`
      */
     public getDirection(): Direction {
@@ -361,17 +354,19 @@ export class Game implements Drawable {
             const bucketNames: Direction[] = ['North', 'NorthEast', 'NorthWest', 'South', 'SouthEast', 'SouthWest'],
                 buckets: number[] = bucketNames.map(name => this.board.captureWeight(this.players[this.currentPlayer], name)),
                 selectedDirection = bucketNames[Math2.selectRandomBucket(buckets)]; // Note: is `undefined` when there are no legal moves
-            let thinkTicks = 2;
+            let thinkTicks = 5, selectTicks = 5;
             const aiTick = setInterval(() => {
                 if (thinkTicks > 0) {
                     thinkTicks--;
                 } else if (this.dPads[this.currentPlayer].getDirection() !== selectedDirection) {
-                    this.dPads[this.currentPlayer].setDirection(selectedDirection);
+                    this.dPads[this.currentPlayer].rotate('CW');
+                } else if (selectTicks > 0) {
+                    selectTicks--;
                 } else {
                     this.takeTurn();
                     clearInterval(aiTick);
                 }
-            }, 500);
+            }, 100);
         }
     }
     private takeTurn(): void {
