@@ -9,29 +9,26 @@ type Rotation = 'CW' | 'CCW';
 /**
  * Represents any player in the game.
  */
-abstract class Player {
-    private static readonly ColorMap: { [K in Color]: { readonly value: string, inUse: boolean } } = {
-        'Red': { value: '#F00', inUse: false },
-        'Orange': { value: '#F80', inUse: false },
-        'Yellow': { value: '#CD1', inUse: false },
-        'Green': { value: '#080', inUse: false },
-        'Cyan': { value: '#0CF', inUse: false },
-        'Blue': { value: '#00F', inUse: false },
-        'Violet': { value: '#C0F', inUse: false },
+class Player {
+    private static readonly ColorMap: { [K in Color]: { readonly code: string, inUse: boolean } } = {
+        'Red': { code: '#F00', inUse: false },
+        'Orange': { code: '#F80', inUse: false },
+        'Yellow': { code: '#CD1', inUse: false },
+        'Green': { code: '#080', inUse: false },
+        'Cyan': { code: '#0CF', inUse: false },
+        'Blue': { code: '#00F', inUse: false },
+        'Violet': { code: '#C0F', inUse: false },
     };
-    private static id_count: number = 0;
-    private readonly id: number;
     /**
      * Create a new player.
      */
-    constructor(private readonly color: Color) {
-        this.id = Player.id_count++;
+    constructor(private readonly color: Color, public readonly isAI: boolean) {
         if (Player.ColorMap[color].inUse) {
-            // Return the first unused color.
-            this.color = <Color>Object.entries(Player.ColorMap).find(([, val]) => !val.inUse)?.[0];
-            if (!this.color) {
+            const unusedColors = Object.entries(Player.ColorMap).filter(([, val]) => !val.inUse).map(([key,]) => <Color>key);
+            if (unusedColors.length === 0) {
                 throw new Error('All colors are in use.');
             }
+            this.color = Math2.selectRandom(unusedColors);
         }
         Player.ColorMap[this.color].inUse = true;
     }
@@ -39,32 +36,25 @@ abstract class Player {
      * Reset the static class values.
      */
     public static reset(): void {
-        Player.id_count = 0;
         Object.values(Player.ColorMap).forEach(val => val.inUse = false);
     }
     /**
      * Determine if this player is the object represented by `other`.
      */
     public is(other: Player): boolean {
-        return this.id === other.id;
+        return this.color === other.color;
     }
     /**
-     * Return the uniqe color of this player.
+     * Return the uniqe color code of this player.
      */
     public getColor(): string {
-        return Player.ColorMap[this.color].value;
+        return Player.ColorMap[this.color].code;
     }
-}
-
-class Human extends Player {
-    constructor(color: Color) {
-        super(color);
-    }
-}
-
-class AI extends Player {
-    constructor() {
-        super('Red');
+    /**
+     * Return the name of this player.
+     */
+    public getName(): string {
+        return (this.isAI ? '[AI] ' : '') + this.color;
     }
 }
 
@@ -189,7 +179,7 @@ class Board implements Drawable {
         if (neutralTiles.length === 0) {
             throw new Error('No neutral tiles left.');
         }
-        const tile = neutralTiles[Math2.randomInt(0, neutralTiles.length)];
+        const tile: Tile = Math2.selectRandom(neutralTiles);
         tile.capture(player);
     }
     /**
@@ -277,6 +267,31 @@ class DPad extends Board {
 }
 
 /**
+ * Represents some text to render on the game surface.
+ */
+class Text implements Drawable {
+    private progress: number = 0;
+    constructor(private readonly value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = new Vec2(0, 0), private readonly writing: boolean = false) { }
+    draw(ctx: CanvasRenderingContext2D): void {
+        if (this.writing) {
+            this.progress++;
+        } else {
+            this.progress = this.value.length;
+        }
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.font = 'bold ' + this.size + 'px monospace';
+        this.value.substring(0, this.progress).split('\n')
+            .forEach((line, i) => {
+                ctx.fillStyle = ctx.canvas.style.background;
+                ctx.fillRect(this.normalizedCenter.x * ctx.canvas.width, this.normalizedCenter.y * ctx.canvas.height + i * this.size, ctx.measureText(line).width, 12);
+                ctx.fillStyle = 'black';
+                ctx.fillText(line, this.normalizedCenter.x * ctx.canvas.width, this.normalizedCenter.y * ctx.canvas.height + i * this.size);
+            });
+    }
+}
+
+/**
  * Stores all the game's core logic.
  */
 export class Game implements Drawable {
@@ -286,6 +301,7 @@ export class Game implements Drawable {
     private readonly players: Player[];
     private readonly dPads: DPad[];
     private currentPlayer: number;
+    private gameOverText: Text | undefined;
     /**
      * Start a new game with specified parameters.
      */
@@ -298,10 +314,10 @@ export class Game implements Drawable {
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
         for (let i = 0; i < numHumans; i++) {
-            this.players.push(new Human(favoriteColor));
+            this.players.push(new Player(favoriteColor, false));
         }
         for (let i = 0; i < numAI; i++) {
-            this.players.push(new AI());
+            this.players.push(new Player(favoriteColor, true));
         }
         this.players.forEach(player => this.dPads.push(new DPad(player)));
         this.board = new Board(boardSize, wallDensity);
@@ -347,17 +363,19 @@ export class Game implements Drawable {
         }
     }
     public humanInput(rotation: Rotation): void {
-        if (this.players[this.currentPlayer] instanceof Human) {
+        if (!this.players[this.currentPlayer].isAI) {
             this.dPads[this.currentPlayer].rotate(rotation);
         }
     }
     public humanSelect(): void {
-        if (this.players[this.currentPlayer] instanceof Human) {
+        if (this.isGameOver()) {
+            this.gameOverText = undefined;
+        } else if (!this.players[this.currentPlayer].isAI) {
             this.takeTurn();
         }
     }
     private aiInput(): void {
-        if (this.players[this.currentPlayer] instanceof AI) {
+        if (this.players[this.currentPlayer].isAI) {
             const bucketNames: Direction[] = ['North', 'NorthEast', 'NorthWest', 'South', 'SouthEast', 'SouthWest'],
                 buckets: number[] = bucketNames.map(name => this.board.captureWeight(this.players[this.currentPlayer], name)),
                 selectedDirection = bucketNames[Math2.selectRandomBucket(buckets)]; // Note: is `undefined` when there are no legal moves
@@ -387,7 +405,9 @@ export class Game implements Drawable {
                 this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
             } while (!this.board.hasLegalMoves(this.players[this.currentPlayer]) && counter < this.players.length);
             if (this.isGameOver()) {
-                this.players.forEach(player => console.log(player.getColor() + ' owns ' + this.board.numTilesOwnedBy(player)));
+                this.gameOverText = new Text(
+                    this.players.map(player => player.getName() + ' captured ' + this.board.numTilesOwnedBy(player) + ' tiles').join('\n'),
+                    12, new Vec2(0.1, 0.1), true);
             } else {
                 this.aiInput();
             }
@@ -406,7 +426,9 @@ export class Game implements Drawable {
     }
     draw(ctx: CanvasRenderingContext2D): void {
         this.board.draw(ctx);
-        if (!this.isGameOver()) {
+        if (this.isGameOver()) {
+            this.gameOverText?.draw(ctx);
+        } else {
             this.dPads[this.currentPlayer].draw(ctx);
         }
     }

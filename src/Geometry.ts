@@ -15,6 +15,12 @@ export class Math2 {
         return Math.floor(Math.random() * (max - min) + min);
     }
     /**
+     * Select a random element from `arr` of type `T`
+     */
+    public static selectRandom<T>(arr: T[]): T {
+        return arr[Math2.randomInt(0, arr.length)];
+    }
+    /**
      * Return a weighted random bucket 0-indexed ID from an array of buckets.
      */
     public static selectRandomBucket(bucketSizes: number[]): number {
