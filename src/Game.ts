@@ -207,6 +207,12 @@ class Board implements Drawable {
             .forEach(tile => tile.capture(player));
     }
     /**
+     * Count the number of tiles that `player` owns.
+     */
+    public numTilesOwnedBy(player: Player): number {
+        return Object.values(this.tiles).filter(tile => tile.isOwnedBy(player)).length;
+    }
+    /**
      * Determine if `player` has any legal moves left on this board.
      */
     public hasLegalMoves(player: Player): boolean {
@@ -380,13 +386,28 @@ export class Game implements Drawable {
                 counter++;
                 this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
             } while (!this.board.hasLegalMoves(this.players[this.currentPlayer]) && counter < this.players.length);
-            if (counter < this.players.length) {
+            if (this.isGameOver()) {
+                this.players.forEach(player => console.log(player.getColor() + ' owns ' + this.board.numTilesOwnedBy(player)));
+            } else {
                 this.aiInput();
             }
         }
     }
+    /**
+     * Determine if no players have any legal moves left.
+     */
+    private isGameOver(): boolean {
+        for (let player of this.players) {
+            if (this.board.hasLegalMoves(player)) {
+                return false;
+            }
+        }
+        return true;
+    }
     draw(ctx: CanvasRenderingContext2D): void {
         this.board.draw(ctx);
-        this.dPads[this.currentPlayer].draw(ctx);
+        if (!this.isGameOver()) {
+            this.dPads[this.currentPlayer].draw(ctx);
+        }
     }
 }
