@@ -5,6 +5,7 @@ type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | '
 type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Cyan' | 'Blue' | 'Violet';
 type SpawnMode = 'fair' | 'random';
 type Rotation = 'CW' | 'CCW';
+type MenuMove = 'up' | 'down';
 
 /**
  * Represents any player in the game.
@@ -271,7 +272,10 @@ class DPad extends Board {
  */
 class Text implements Drawable {
     private progress: number = 0;
-    constructor(private value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = new Vec2(0, 0), private readonly writing: boolean = false) { }
+    constructor(private value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = new Vec2(0, 0), private readonly writing: boolean = false, private readonly style: { align: CanvasTextAlign, base: CanvasTextBaseline } = { align: 'left', base: 'top' }) { }
+    /**
+     * Set the text of this `Text` element
+     */
     public setText(value: string): void {
         this.value = value;
     }
@@ -281,8 +285,8 @@ class Text implements Drawable {
         } else {
             this.progress = this.value.length;
         }
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
+        ctx.textAlign = this.style.align;
+        ctx.textBaseline = this.style.base;
         ctx.font = 'bold ' + this.size + 'px monospace';
         this.value.substring(0, this.progress).split('\n')
             .forEach((line, i) => {
@@ -316,7 +320,7 @@ export class Game implements Drawable {
         this.dPads = [];
         this.turnNumber = 0;
         this.currentPlayer = -1;
-        this.turnText = new Text('Start game', 12, new Vec2(0.01, 0.01), false);
+        this.turnText = new Text('Start game', 12, new Vec2(0.01, 0.01));
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
@@ -405,12 +409,18 @@ export class Game implements Drawable {
     private currDir(): Direction {
         return this.dPads[this.currentPlayer].getDirection();
     }
+    /**
+     * This function attempts to capture tiles, and on success, advances to the next turn.
+     */
     private takeTurn(): void {
         if (this.board.captureWeight(this.currPlayer(), this.currDir()) > 0) {
             this.board.captureTiles(this.currPlayer(), this.currDir());
             this.nextTurn();
         }
     }
+    /**
+     * This function forces the next turn and does not capture.
+     */
     private nextTurn(): void {
         let counter = 0;
         do {
@@ -449,5 +459,52 @@ export class Game implements Drawable {
             this.dPads[this.currentPlayer].draw(ctx);
             this.turnText.draw(ctx);
         }
+    }
+}
+
+/**
+ * Represents an in-game menu for selection.
+ */
+export class Menu extends Text {
+    private selected: number;
+    /**
+     * Create a new list of menu options from an array of items.
+     */
+    constructor(private readonly items: string[]) {
+        super('', 12, new Vec2(0.5, 0.5), false, { align: 'center', base: 'middle' });
+        this.selected = 0;
+        this.refresh();
+    }
+    /**
+     * Move the menu selector up or down.
+     */
+    public move(way: MenuMove): void {
+        switch (way) {
+            case ('up'): {
+                this.selected--;
+                break;
+            }
+            case ('down'): {
+                this.selected++;
+                break;
+            }
+            default: {
+                throw new Error('Invalid menu movement: ' + way);
+            }
+        }
+        this.selected = (this.selected + this.items.length) % this.items.length;
+        this.refresh();
+    }
+    /**
+     * Return the currently selected text.
+     */
+    public getSelected(): string {
+        return this.items[this.selected];
+    }
+    /**
+     * Reset the text of this menu list.
+     */
+    private refresh(): void {
+        this.setText(this.items.map((item, i) => i === this.selected ? '> ' + item + ' <' : item).join('\n'));
     }
 }
