@@ -542,9 +542,11 @@ class Menu extends Text {
 export class Hexles implements Drawable {
     private static currentState: GameState = 'MainMenu';
     private static game: Game;
+    private static helpPage: number;
     private static readonly header: Text = new Text('', 24, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
     private static readonly tipText: Text = new Text('', 12, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
     private static readonly setting: Text = new Text('', 12, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
+    private static readonly helpText: Text = new Text('', 12, new Vec2(0.05, 0.2));
     private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
@@ -564,6 +566,10 @@ export class Hexles implements Drawable {
         spawnMode: this.GameModeChoice[0],
         wallDensity: this.SpawnWallsChoice[0],
     };
+    private static readonly TutorialText: string[] = [
+        'This game is played using the arrow\nkeys/WASD, space/enter, and ESC/backspace.\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
+        'This game is played on a hexagonal tiled\nboard much like this one.\n\nThe aim of the game is\nto capture as many\ntiles as possible.',
+    ];
     /**
      * Accept user keyboard input.
      */
@@ -597,12 +603,15 @@ export class Hexles implements Drawable {
                         this.tipText.setText('');
                         switch (this.mainMenu.getSelected()) {
                             case ('Play'): {
-                                this.game = new Game(this.gameSettings.numHumans, this.gameSettings.numAI, this.BoardSizeChoice.indexOf(this.gameSettings.size) + 1, this.gameSettings.favoriteColor, this.gameSettings.spawnMode === 'Corners' ? 'fair' : 'random', this.SpawnWallsChoice.indexOf(this.gameSettings.wallDensity) / 4);
+                                this.game = new Game(this.gameSettings.numHumans, this.gameSettings.numAI, this.BoardSizeChoice.indexOf(this.gameSettings.size) + 1, this.gameSettings.favoriteColor, this.gameSettings.spawnMode === 'Corners' ? 'fair' : 'random', this.SpawnWallsChoice.indexOf(this.gameSettings.wallDensity) / 6);
                                 this.currentState = 'Game';
                                 break;
                             }
                             case ('Help'): {
+                                this.helpPage = 0;
                                 this.currentState = 'Help';
+                                this.helpText.setText(this.TutorialText[this.helpPage]);
+                                this.tipText.setText('Press ESC/backspace any time to exit.');
                                 break;
                             }
                             case ('Options'): {
@@ -771,6 +780,27 @@ export class Hexles implements Drawable {
                 break;
             }
             case ('Help'): {
+                switch (inputType) {
+                    case ('CW'): {
+                        this.helpPage++;
+                        break;
+                    }
+                    case ('CCW'): {
+                        this.helpPage--;
+                        break;
+                    }
+                    case ('back'): {
+                        this.tipText.setText('');
+                        this.currentState = 'MainMenu';
+                        break;
+                    }
+                }
+                if (this.helpPage >= 0 && this.helpPage < this.TutorialText.length) {
+                    this.helpText.setText(this.TutorialText[this.helpPage]);
+                } else {
+                    this.tipText.setText('');
+                    this.currentState = 'MainMenu';
+                }
                 break;
             }
             default: {
@@ -789,6 +819,14 @@ export class Hexles implements Drawable {
             index--;
         }
         return choices[(index + choices.length) % choices.length];
+    }
+    private static generateTutorialBoard(step: number): Board { // TODO: Is it possible to avoid re-generating the whole board every frame?
+        Player.reset();
+        const P: Player[] = [new Player('Blue', true), new Player('Yellow', true)],
+            board: Board = new Board(2, 0, new Vec2(0.75, 0.5));
+        board.spawn(P[0], new Vec2(0, -2));
+        board.spawn(P[1], new Vec2(0, 2));
+        return board;
     }
     draw(ctx: CanvasRenderingContext2D): void {
         switch (Hexles.currentState) {
@@ -823,6 +861,13 @@ export class Hexles implements Drawable {
                 break;
             }
             case ('Help'): {
+                Hexles.header.setText('Tutorial (' + (Hexles.helpPage + 1) + ')');
+                Hexles.header.draw(ctx);
+                Hexles.helpText.draw(ctx);
+                Hexles.tipText.draw(ctx);
+                if (Hexles.helpPage >= 1) {
+                    Hexles.generateTutorialBoard(Hexles.helpPage).draw(ctx);
+                }
                 break;
             }
             default: {
