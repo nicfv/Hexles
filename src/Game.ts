@@ -107,6 +107,13 @@ class Tile extends Hexagon implements Drawable {
         return false;
     }
     /**
+     * Force a capture. Clears other players and walls.
+     */
+    public forceCapture(player: Player): void {
+        this.owner = player;
+        this.isWall = false;
+    }
+    /**
      * Uncapture this tile.
      */
     public clear(): void {
@@ -164,15 +171,10 @@ class Board implements Drawable {
             .filter(tile => tile?.isNeutral()); // Filter only to the neutral tiles
     }
     /**
-     * Try to spawn `player` at `location` on the board.
+     * Force `player` to spawn at `location` on the board.
      */
-    public spawn(player: Player, location: Vec2): boolean {
-        const tile: Tile | undefined = this.tiles[location.x + ',' + location.y];
-        if (!tile?.isNeutral()) {
-            return false;
-        }
-        tile.capture(player);
-        return true;
+    public spawn(player: Player, location: Vec2): void {
+        this.tiles[location.x + ',' + location.y]?.forceCapture(player);
     }
     /**
      * Spawn `player` at a random location on the board.
@@ -542,19 +544,25 @@ export class Hexles implements Drawable {
     private static game: Game;
     private static readonly header: Text = new Text('', 24, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
     private static readonly tipText: Text = new Text('', 12, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
-    private static readonly setting: Text = new Text('', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
+    private static readonly setting: Text = new Text('', 12, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
     private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
-    private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Go Back']);
+    private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Walls', 'Go Back']);
     private static readonly demoBoard: Board = new Board(1, 0, new Vec2(0.5, 0.3));
-    private static readonly gameSettings: { numHumans: number, numAI: number, size: number, favoriteColor: Color, spawnMode: SpawnMode, wallDensity: number } = {
-        numHumans: 0,
-        numAI: 1,
-        size: 2,
-        favoriteColor: 'Red',
-        spawnMode: 'random',
-        wallDensity: 0.25,
+    private static readonly NumHumanChoice: number[] = [0, 1, 2, 3, 4, 5, 6];
+    private static readonly NumAIChoice: number[] = [0, 1, 2, 3, 4, 5, 6];
+    private static readonly BoardSizeChoice: string[] = ['Micro', 'Small', 'Medium', 'Large', 'Huge'];
+    private static readonly ColorChoice: Color[] = ['Red', 'Orange', 'Yellow', 'Green', 'Cyan', 'Blue', 'Violet'];
+    private static readonly GameModeChoice: string[] = ['Corners', 'Random'];
+    private static readonly SpawnWallsChoice: string[] = ['None', 'Light', 'Dense'];
+    private static readonly gameSettings: { numHumans: number, numAI: number, size: string, favoriteColor: Color, spawnMode: string, wallDensity: string } = {
+        numHumans: this.NumHumanChoice[0],
+        numAI: this.NumAIChoice[0],
+        size: this.BoardSizeChoice[0],
+        favoriteColor: this.ColorChoice[0],
+        spawnMode: this.GameModeChoice[0],
+        wallDensity: this.SpawnWallsChoice[0],
     };
     /**
      * Accept user keyboard input.
@@ -589,7 +597,7 @@ export class Hexles implements Drawable {
                         this.tipText.setText('');
                         switch (this.mainMenu.getSelected()) {
                             case ('Play'): {
-                                this.game = new Game(this.gameSettings.numHumans, this.gameSettings.numAI, this.gameSettings.size, this.gameSettings.favoriteColor, this.gameSettings.spawnMode, this.gameSettings.wallDensity);
+                                this.game = new Game(this.gameSettings.numHumans, this.gameSettings.numAI, this.BoardSizeChoice.indexOf(this.gameSettings.size) + 1, this.gameSettings.favoriteColor, this.gameSettings.spawnMode === 'Corners' ? 'fair' : 'random', this.SpawnWallsChoice.indexOf(this.gameSettings.wallDensity) / 4);
                                 this.currentState = 'Game';
                                 break;
                             }
@@ -637,6 +645,10 @@ export class Hexles implements Drawable {
                                 this.setting.setText('< ' + this.gameSettings.spawnMode + ' >');
                                 break;
                             }
+                            case ('Walls'): {
+                                this.setting.setText('< ' + this.gameSettings.wallDensity + ' >');
+                                break;
+                            }
                             default: {
                                 this.setting.setText('');
                             }
@@ -645,6 +657,41 @@ export class Hexles implements Drawable {
                     }
                     case ('CCW'):
                     case ('CW'): {
+                        switch (this.settings.getSelected()) {
+                            case ('Human Players'): {
+                                this.gameSettings.numHumans = this.handleChoice(this.gameSettings.numHumans, this.NumHumanChoice, inputType);
+                                this.setting.setText('< ' + this.gameSettings.numHumans + ' >');
+                                break;
+                            }
+                            case ('AI Players'): {
+                                this.gameSettings.numAI = this.handleChoice(this.gameSettings.numAI, this.NumAIChoice, inputType);
+                                this.setting.setText('< ' + this.gameSettings.numAI + ' >');
+                                break;
+                            }
+                            case ('Board Size'): {
+                                this.gameSettings.size = this.handleChoice(this.gameSettings.size, this.BoardSizeChoice, inputType);
+                                this.setting.setText('< ' + this.gameSettings.size + ' >');
+                                break;
+                            }
+                            case ('Favorite Color'): {
+                                this.gameSettings.favoriteColor = this.handleChoice(this.gameSettings.favoriteColor, this.ColorChoice, inputType);
+                                this.setting.setText('< ' + this.gameSettings.favoriteColor + ' >');
+                                break;
+                            }
+                            case ('Spawn Mode'): {
+                                this.gameSettings.spawnMode = this.handleChoice(this.gameSettings.spawnMode, this.GameModeChoice, inputType);
+                                this.setting.setText('< ' + this.gameSettings.spawnMode + ' >');
+                                break;
+                            }
+                            case ('Walls'): {
+                                this.gameSettings.wallDensity = this.handleChoice(this.gameSettings.wallDensity, this.SpawnWallsChoice, inputType);
+                                this.setting.setText('< ' + this.gameSettings.wallDensity + ' >');
+                                break;
+                            }
+                            default: {
+                                this.setting.setText('');
+                            }
+                        }
                         break;
                     }
                     case ('select'): {
@@ -730,6 +777,18 @@ export class Hexles implements Drawable {
                 throw new Error('Invalid game state: ' + this.currentState);
             }
         }
+    }
+    /**
+     * Scroll through a list of choices of type `T` and based on user input, return the next (or previous) choice.
+     */
+    private static handleChoice<T>(currentChoice: T, choices: T[], way: Rotation): T {
+        let index = choices.indexOf(currentChoice);
+        if (way === 'CW') {
+            index++;
+        } else {
+            index--;
+        }
+        return choices[(index + choices.length) % choices.length];
     }
     draw(ctx: CanvasRenderingContext2D): void {
         switch (Hexles.currentState) {
