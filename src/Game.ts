@@ -310,6 +310,7 @@ class Game implements Drawable {
     private readonly board: Board;
     private readonly players: Player[];
     private readonly dPads: DPad[];
+    private paused: boolean;
     private turnNumber: number;
     private currentPlayer: number;
     private readonly turnText: Text;
@@ -321,6 +322,7 @@ class Game implements Drawable {
         Player.reset();
         this.players = [];
         this.dPads = [];
+        this.paused = false;
         this.turnNumber = 0;
         this.currentPlayer = -1;
         this.turnText = new Text('Start game', 12, new Vec2(0.01, 0.01));
@@ -374,11 +376,29 @@ class Game implements Drawable {
             }
         }
     }
+    /**
+     * Pauses the game.
+     */
+    public pause(): void {
+        this.paused = true;
+    }
+    /**
+     * Unpauses the game.
+     */
+    public unpause(): void {
+        this.paused = false;
+    }
+    /**
+     * Accept human keyboard input.
+     */
     public humanInput(rotation: Rotation): void {
         if (!this.currPlayer().isAI) {
             this.dPads[this.currentPlayer].rotate(rotation);
         }
     }
+    /**
+     * Make a selection.
+     */
     public humanSelect(): void {
         if (this.isGameOver()) {
             this.gameOverText = undefined;
@@ -393,7 +413,9 @@ class Game implements Drawable {
                 selectedDirection = bucketNames[Math2.selectRandomBucket(buckets)]; // Note: is `undefined` when there are no legal moves
             let thinkTicks = 5, selectTicks = 5;
             const aiTick = setInterval(() => {
-                if (thinkTicks > 0) {
+                if (this.paused) {
+                    // Do nothing.
+                } else if (thinkTicks > 0) {
                     thinkTicks--;
                 } else if (this.currDir() !== selectedDirection) {
                     this.dPads[this.currentPlayer].rotate('CW');
@@ -644,9 +666,61 @@ export class Hexles implements Drawable {
                 break;
             }
             case ('Game'): {
+                switch (inputType) {
+                    case ('CCW'):
+                    case ('CW'): {
+                        this.game.humanInput(inputType);
+                        break;
+                    }
+                    case ('select'): {
+                        this.game.humanSelect();
+                        break;
+                    }
+                    case ('back'): {
+                        this.game.pause();
+                        this.currentState = 'Paused';
+                        break;
+                    }
+                }
                 break;
             }
             case ('Paused'): {
+                switch (inputType) {
+                    case ('down'):
+                    case ('up'): {
+                        this.pauseMenu.move(inputType);
+                        switch (this.pauseMenu.getSelected()) {
+                            case ('Resume'): {
+                                this.tipText.setText('Unpause and go back to the game.');
+                                break;
+                            }
+                            case ('Quit'): {
+                                this.tipText.setText('Go back to the main menu.');
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case ('select'): {
+                        switch (this.pauseMenu.getSelected()) {
+                            case ('Resume'): {
+                                this.game.unpause();
+                                this.currentState = 'Game';
+                                break;
+                            }
+                            case ('Quit'): {
+                                this.currentState = 'MainMenu';
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case ('back'): {
+                        this.game.unpause();
+                        this.currentState = 'Game';
+                        break;
+                    }
+                }
                 break;
             }
             case ('Help'): {
@@ -670,8 +744,8 @@ export class Hexles implements Drawable {
             }
             case ('Settings'): {
                 Hexles.header.setText('Settings');
-                Hexles.demoBoard.draw(ctx);
                 Hexles.header.draw(ctx);
+                Hexles.demoBoard.draw(ctx);
                 Hexles.settings.draw(ctx);
                 Hexles.setting.draw(ctx);
                 Hexles.tipText.draw(ctx);
@@ -684,7 +758,9 @@ export class Hexles implements Drawable {
             case ('Paused'): {
                 Hexles.header.setText('Paused');
                 Hexles.header.draw(ctx);
+                Hexles.demoBoard.draw(ctx);
                 Hexles.pauseMenu.draw(ctx);
+                Hexles.tipText.draw(ctx);
                 break;
             }
             case ('Help'): {
