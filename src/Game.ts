@@ -241,7 +241,7 @@ class DPad extends Board {
      * Create a new instance of `DPad`
      */
     constructor(private readonly player: Player) {
-        super(1, 0, new Vec2(0.875, 0.875));
+        super(1, 0, new Vec2(0.875, 0.8125));
         this.direction = 'North';
         this.refresh();
     }
@@ -520,10 +520,11 @@ export class Hexles implements Drawable {
     private static game: Game;
     private static readonly header: Text = new Text('', 24, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
     private static readonly tipText: Text = new Text('', 12, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
+    private static readonly setting: Text = new Text('', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
     private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
-    private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode']);
+    private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Go Back']);
     private static readonly demoBoard: Board = new Board(1, 0, new Vec2(0.5, 0.3));
     private static readonly gameSettings: { numHumans: number, numAI: number, size: number, favoriteColor: Color, spawnMode: SpawnMode, wallDensity: number } = {
         numHumans: 0,
@@ -576,6 +577,7 @@ export class Hexles implements Drawable {
                             }
                             case ('Options'): {
                                 this.currentState = 'Settings';
+                                this.tipText.setText('Use left and right to change settings.');
                                 break;
                             }
                             default: {
@@ -585,8 +587,60 @@ export class Hexles implements Drawable {
                         break;
                     }
                 }
+                break;
             }
             case ('Settings'): {
+                switch (inputType) {
+                    case ('down'):
+                    case ('up'): {
+                        this.settings.move(inputType);
+                        switch (this.settings.getSelected()) {
+                            case ('Human Players'): {
+                                this.setting.setText('< ' + this.gameSettings.numHumans + ' >');
+                                break;
+                            }
+                            case ('AI Players'): {
+                                this.setting.setText('< ' + this.gameSettings.numAI + ' >');
+                                break;
+                            }
+                            case ('Board Size'): {
+                                this.setting.setText('< ' + this.gameSettings.size + ' >');
+                                break;
+                            }
+                            case ('Favorite Color'): {
+                                this.setting.setText('< ' + this.gameSettings.favoriteColor + ' >');
+                                break;
+                            }
+                            case ('Spawn Mode'): {
+                                this.setting.setText('< ' + this.gameSettings.spawnMode + ' >');
+                                break;
+                            }
+                            default: {
+                                this.setting.setText('');
+                            }
+                        }
+                        break;
+                    }
+                    case ('CCW'):
+                    case ('CW'): {
+                        break;
+                    }
+                    case ('select'): {
+                        switch (this.settings.getSelected()) {
+                            case ('Go Back'): {
+                                this.currentState = 'MainMenu';
+                                this.tipText.setText('');
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case ('back'): {
+                        this.currentState = 'MainMenu';
+                        this.tipText.setText('');
+                        break;
+                    }
+                }
                 break;
             }
             case ('Game'): {
@@ -619,6 +673,7 @@ export class Hexles implements Drawable {
                 Hexles.demoBoard.draw(ctx);
                 Hexles.header.draw(ctx);
                 Hexles.settings.draw(ctx);
+                Hexles.setting.draw(ctx);
                 Hexles.tipText.draw(ctx);
                 break;
             }

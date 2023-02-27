@@ -10,26 +10,32 @@ CANV.tick = () => {
 
 CANV.onkeydown = key => {
     switch (key.toLowerCase()) {
+        case ('arrowup'):
         case ('w'): {
             Hexles.receiveInput('up');
             break;
         }
+        case ('arrowdown'):
         case ('s'): {
             Hexles.receiveInput('down');
             break;
         }
+        case ('arrowleft'):
         case ('a'): {
             Hexles.receiveInput('CCW');
             break;
         }
+        case ('arrowright'):
         case ('d'): {
             Hexles.receiveInput('CW');
             break;
         }
+        case ('enter'):
         case (' '): {
             Hexles.receiveInput('select');
             break;
         }
+        case ('backspace'):
         case ('escape'): {
             Hexles.receiveInput('back');
             break;
