@@ -1,39 +1,37 @@
 import { Canvas } from "./Engine";
-import { Game, Menu } from "./Game";
+import { Hexles } from "./Game";
 
-const CANV = new Canvas(document.body, 300, 200, 'cornflowerblue', 50, { width: 600, height: 400 });
-
-const game = new Game(0, 10, 5, 'Green', 'random', 0.25);
-
-const menu = new Menu(['hello', 'option 2', 'yonkers', 'blonker']);
+const CANV = new Canvas(document.body, 300, 200, 'cornflowerblue', false, true, 50, { width: 600, height: 400 });
 
 CANV.tick = () => {
     CANV.clear();
-    // CANV.draw(game);
-    CANV.draw(menu);
+    CANV.draw(new Hexles());
 };
 
 CANV.onkeydown = key => {
-    switch (key) {
+    switch (key.toLowerCase()) {
         case ('w'): {
-            menu.move('up');
+            Hexles.receiveInput('up');
             break;
         }
         case ('s'): {
-            menu.move('down');
+            Hexles.receiveInput('down');
             break;
         }
         case ('a'): {
-            game.humanInput('CCW');
+            Hexles.receiveInput('CCW');
             break;
         }
         case ('d'): {
-            game.humanInput('CW');
+            Hexles.receiveInput('CW');
             break;
         }
         case (' '): {
-            console.log(menu.getSelected());
-            game.humanSelect();
+            Hexles.receiveInput('select');
+            break;
+        }
+        case ('escape'): {
+            Hexles.receiveInput('back');
             break;
         }
     }

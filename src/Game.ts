@@ -6,6 +6,8 @@ type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Cyan' | 'Blue' | 'Violet';
 type SpawnMode = 'fair' | 'random';
 type Rotation = 'CW' | 'CCW';
 type MenuMove = 'up' | 'down';
+type GameState = 'MainMenu' | 'Settings' | 'Game' | 'Paused' | 'Help';
+type Input = MenuMove | Rotation | 'select' | 'back';
 
 /**
  * Represents any player in the game.
@@ -278,6 +280,7 @@ class Text implements Drawable {
      */
     public setText(value: string): void {
         this.value = value;
+        this.progress = 0;
     }
     draw(ctx: CanvasRenderingContext2D): void {
         if (this.writing) {
@@ -301,7 +304,7 @@ class Text implements Drawable {
 /**
  * Stores all the game's core logic.
  */
-export class Game implements Drawable {
+class Game implements Drawable {
     private static readonly MIN_PLAYERS: number = 1;
     private static readonly MAX_PLAYERS: number = 6;
     private readonly board: Board;
@@ -465,7 +468,7 @@ export class Game implements Drawable {
 /**
  * Represents an in-game menu for selection.
  */
-export class Menu extends Text {
+class Menu extends Text {
     private selected: number;
     /**
      * Create a new list of menu options from an array of items.
@@ -506,5 +509,135 @@ export class Menu extends Text {
      */
     private refresh(): void {
         this.setText(this.items.map((item, i) => i === this.selected ? '> ' + item + ' <' : item).join('\n'));
+    }
+}
+
+/**
+ * This class contains all the logic necessary to play the Hexles official online board game.
+ */
+export class Hexles implements Drawable {
+    private static currentState: GameState = 'MainMenu';
+    private static game: Game;
+    private static readonly header: Text = new Text('', 24, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
+    private static readonly tipText: Text = new Text('', 12, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
+    private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
+    private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
+    private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
+    private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode']);
+    private static readonly demoBoard: Board = new Board(1, 0, new Vec2(0.5, 0.3));
+    private static readonly gameSettings: { numHumans: number, numAI: number, size: number, favoriteColor: Color, spawnMode: SpawnMode, wallDensity: number } = {
+        numHumans: 0,
+        numAI: 1,
+        size: 2,
+        favoriteColor: 'Red',
+        spawnMode: 'random',
+        wallDensity: 0.25,
+    };
+    /**
+     * Accept user keyboard input.
+     */
+    public static receiveInput(inputType: Input): void {
+        switch (this.currentState) {
+            case ('MainMenu'): {
+                switch (inputType) {
+                    case ('down'):
+                    case ('up'): {
+                        this.mainMenu.move(inputType);
+                        switch (this.mainMenu.getSelected()) {
+                            case ('Play'): {
+                                this.tipText.setText('Play Hexles with the current settings.');
+                                break;
+                            }
+                            case ('Help'): {
+                                this.tipText.setText('Learn how to play Hexles with a tutorial.');
+                                break;
+                            }
+                            case ('Options'): {
+                                this.tipText.setText('Customize your gameplay experience!');
+                                break;
+                            }
+                            default: {
+                                this.tipText.setText('');
+                            }
+                        }
+                        break;
+                    }
+                    case ('select'): {
+                        this.tipText.setText('');
+                        switch (this.mainMenu.getSelected()) {
+                            case ('Play'): {
+                                this.game = new Game(this.gameSettings.numHumans, this.gameSettings.numAI, this.gameSettings.size, this.gameSettings.favoriteColor, this.gameSettings.spawnMode, this.gameSettings.wallDensity);
+                                this.currentState = 'Game';
+                                break;
+                            }
+                            case ('Help'): {
+                                this.currentState = 'Help';
+                                break;
+                            }
+                            case ('Options'): {
+                                this.currentState = 'Settings';
+                                break;
+                            }
+                            default: {
+                                this.tipText.setText('');
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            case ('Settings'): {
+                break;
+            }
+            case ('Game'): {
+                break;
+            }
+            case ('Paused'): {
+                break;
+            }
+            case ('Help'): {
+                break;
+            }
+            default: {
+                throw new Error('Invalid game state: ' + this.currentState);
+            }
+        }
+    }
+    draw(ctx: CanvasRenderingContext2D): void {
+        switch (Hexles.currentState) {
+            case ('MainMenu'): {
+                Hexles.header.setText('Hexles');
+                Hexles.header.draw(ctx);
+                Hexles.demoBoard.draw(ctx);
+                Hexles.mainMenu.draw(ctx);
+                Hexles.creator.draw(ctx);
+                Hexles.tipText.draw(ctx);
+                break;
+            }
+            case ('Settings'): {
+                Hexles.header.setText('Settings');
+                Hexles.demoBoard.draw(ctx);
+                Hexles.header.draw(ctx);
+                Hexles.settings.draw(ctx);
+                Hexles.tipText.draw(ctx);
+                break;
+            }
+            case ('Game'): {
+                Hexles.game.draw(ctx);
+                break;
+            }
+            case ('Paused'): {
+                Hexles.header.setText('Paused');
+                Hexles.header.draw(ctx);
+                Hexles.pauseMenu.draw(ctx);
+                break;
+            }
+            case ('Help'): {
+                break;
+            }
+            default: {
+                throw new Error('Invalid game state: ' + Hexles.currentState);
+            }
+        }
     }
 }

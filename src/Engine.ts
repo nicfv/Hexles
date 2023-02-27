@@ -32,7 +32,7 @@ export class Canvas {
      * Create a new `Canvas` and append it onto the `parent` element. The number `dt` specifies the `tick` interval.
      * If `elementSize` is specified, this overrides the size of the HTML canvas element and stretches or compresses the pixels.
      */
-    constructor(parent: Element, width: number, height: number, background: string, dt: number, elementSize: { width: number, height: number } = { width: width, height: height }) {
+    constructor(parent: Element, width: number, height: number, background: string, showMouse: boolean, keepFocused: boolean, dt: number, elementSize: { width: number, height: number } = { width: width, height: height }) {
         // Create the canvas and context, and append it to the parent element
         this.element = document.createElement('canvas');
         this.context = this.element.getContext('2d')!;
@@ -42,6 +42,7 @@ export class Canvas {
         this.element.style.height = elementSize.height + 'px';
         this.element.style.imageRendering = 'pixelated';
         this.element.style.background = background;
+        this.element.style.cursor = showMouse ? 'default' : 'none';
         // Set attributes for the canvas
         this.element.width = width;
         this.element.height = height;
@@ -54,6 +55,7 @@ export class Canvas {
         this.element.addEventListener('keydown', e => this.onkeydown(e.key));
         this.element.addEventListener('keyup', e => this.onkeyup(e.key));
         this.element.addEventListener('contextmenu', e => e.preventDefault());
+        keepFocused && this.element.addEventListener('focusout', () => this.element.focus());
         // Set an interval to call the tick function
         setInterval(() => this.tick(), dt);
     }
