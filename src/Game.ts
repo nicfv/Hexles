@@ -171,6 +171,12 @@ class Board implements Drawable {
             .filter(tile => tile?.isNeutral()); // Filter only to the neutral tiles
     }
     /**
+     * Build a wall at `location`. Should only ever be used in the tutorial.
+     */
+    public tutorialWall(location: Vec2): void {
+        this.tiles[location.x + ',' + location.y].buildWall();
+    }
+    /**
      * Force `player` to spawn at `location` on the board.
      */
     public spawn(player: Player, location: Vec2): void {
@@ -242,8 +248,8 @@ class DPad extends Board {
     /**
      * Create a new instance of `DPad`
      */
-    constructor(private readonly player: Player) {
-        super(1, 0, new Vec2(0.875, 0.8125));
+    constructor(private readonly player: Player, overrideCenter?: Vec2) {
+        super(1, 0, overrideCenter ?? new Vec2(0.875, 0.8125));
         this.direction = 'North';
         this.refresh();
     }
@@ -545,7 +551,7 @@ export class Hexles implements Drawable {
     private static helpPage: number;
     private static readonly header: Text = new Text('', 24, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
     private static readonly tipText: Text = new Text('', 12, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
-    private static readonly setting: Text = new Text('', 12, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
+    private static readonly setting: Text = new Text('< 0 >', 12, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
     private static readonly helpText: Text = new Text('', 12, new Vec2(0.05, 0.2));
     private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
@@ -559,16 +565,39 @@ export class Hexles implements Drawable {
     private static readonly GameModeChoice: string[] = ['Corners', 'Random'];
     private static readonly SpawnWallsChoice: string[] = ['None', 'Light', 'Dense'];
     private static readonly gameSettings: { numHumans: number, numAI: number, size: string, favoriteColor: Color, spawnMode: string, wallDensity: string } = {
-        numHumans: this.NumHumanChoice[0],
+        numHumans: this.NumHumanChoice[1],
         numAI: this.NumAIChoice[0],
-        size: this.BoardSizeChoice[0],
+        size: this.BoardSizeChoice[1],
         favoriteColor: this.ColorChoice[0],
         spawnMode: this.GameModeChoice[0],
         wallDensity: this.SpawnWallsChoice[0],
     };
     private static readonly TutorialText: string[] = [
-        'This game is played using the arrow\nkeys/WASD, space/enter, and ESC/backspace.\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
-        'This game is played on a hexagonal tiled\nboard much like this one.\n\nThe aim of the game is\nto capture as many\ntiles as possible.',
+        'This game is called Hexles. Play using the\nkeyboard:\n- arrow keys/WASD (move cursor)\n- space/enter (select)\n- ESC/backspace (cancel/pause)\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
+        'Hexles is played on\na hexagonal tiled board\nmuch like this one.\n\nThe aim of the game is\nto capture as many\ntiles as possible.\n\nWhen the board is full,\nthe biggest empire wins.',
+        'Players (up to 6 total) take turns\ncapturing tiles.\n\nHuman players always go\nfirst before AI players,\nexcept in this tutorial.\n\nAll players can only\ncapture neutral (light\ngray) tiles.',
+        'In one turn, players capture tiles in one\nof 6 directions.\n\nUse A/D or the left and\nright arrow keys to rotate\nthis directional input.\nThis shows the direction\nin which to capture tiles.\n\nPress D or the right arrow key to rotate\nthis until it points South.',
+        'Good! Keep going.',
+        'Almost there.',
+        'Perfect! This directional input shows\nthat you want to capture tiles that are\non your South border.\n\nPress space/enter to\nconfirm your selection.',
+        'Switching back to the game board.\nThis is before...\n\nPress space/enter.',
+        'And after. Notice you captured a\ntile! You are well on your\nway to victory.\n\nNeed a replay of that?\nPress A/left!\n\nNow it is [AI] Blue\'s\nturn.',
+        '[AI] Blue captured North.\n\nNotice how 2 tiles were\ncaptured this time. This\nis because both of\n[AI] Blue\'s tiles had a\nNorthern border.\n\nHexles speeds up the more\nyou expand your empire.',
+        'Move the directional input cursor to\nthe Southwest position.\n\nPress D/right once.',
+        'Now press space/enter to select.',
+        'You just captured 2 more tiles!\n\nLet\'s make this more\ninteresting.',
+        'The dark gray tiles are walls.\nWalls are obstacles that\ncan\'t be captured or\ntraversed.\n\nWalls can be toggled\non/off in Options.',
+        '[AI] Blue captured Northwest.\n\nDespite the 3 tiles on\nits Northwestern border,\nonly 2 tiles were\ncaptured.\n\nCan you figure out the\nnext move?',
+        'Move the cursor to the Southeast position.\n\nRotate the directional\ninput counter clockwise\n(A/left) twice or clockwise\n(D/right) four times.\n\nIn this tutorial you must\nrotate clockwise 4 times.',
+        'Rotate it clockwise 3 more times.\n\nPress D/right arrow.',
+        'Rotate it clockwise 2 more times.\n\nPress D/right arrow.',
+        'Rotate it clockwise 1 more time.\n\nPress D/right arrow.',
+        'Now press space/enter to confirm.',
+        'You captured 2 more tiles and\nblocked [AI] Blue from\nfurther expanding North!',
+        '[AI] Blue captured Northeast and is\nnow out of legal moves.\n\nThat means you can\ncapture tiles until you\nrun out of moves, too.',
+        'You first capture tiles at your\nSouthwest border.',
+        'Finally, you capture tiles at your\nNortheast border. Capturing\nSoutheast would have\nworked, too.',
+        'No players have any moves left, so it\'s\ngame over. [AI] Blue\ncaptured 7 tiles and\nyou captured 9.\n\nCongratulations, you win\nand officially completed\nthe tutorial!',
     ];
     /**
      * Accept user keyboard input.
@@ -781,6 +810,7 @@ export class Hexles implements Drawable {
             }
             case ('Help'): {
                 switch (inputType) {
+                    case ('select'):
                     case ('CW'): {
                         this.helpPage++;
                         break;
@@ -820,12 +850,72 @@ export class Hexles implements Drawable {
         }
         return choices[(index + choices.length) % choices.length];
     }
-    private static generateTutorialBoard(step: number): Board { // TODO: Is it possible to avoid re-generating the whole board every frame?
+    private static generateTutorialBoard(step: number): Board {
         Player.reset();
-        const P: Player[] = [new Player('Blue', true), new Player('Yellow', true)],
-            board: Board = new Board(2, 0, new Vec2(0.75, 0.5));
-        board.spawn(P[0], new Vec2(0, -2));
-        board.spawn(P[1], new Vec2(0, 2));
+        const P: Player[] = [new Player('Blue', true), new Player('Orange', true)],
+            board: Board = new Board(2, 0, new Vec2(0.75, 0.5)),
+            dpad: DPad = new DPad(P[1], new Vec2(0.75, 0.5));
+        board.spawn(P[0], new Vec2(0, 2));
+        board.spawn(P[1], new Vec2(0, -2));
+        if (step > 1) {
+            board.captureTiles(P[0], 'NorthEast');
+        }
+        if (step > 3) {
+            dpad.rotate('CW');
+        }
+        if (step > 4) {
+            dpad.rotate('CW');
+        }
+        if (step > 5) {
+            dpad.rotate('CW');
+        }
+        if (step > 7) {
+            board.captureTiles(P[1], 'South');
+        }
+        if (step > 8) {
+            board.captureTiles(P[0], 'North');
+        }
+        if (step > 10) {
+            dpad.rotate('CW');
+        }
+        if (step > 11) {
+            board.captureTiles(P[1], 'SouthWest');
+        }
+        if (step > 12) {
+            board.tutorialWall(new Vec2(-2, 2));
+            board.tutorialWall(new Vec2(-1, 1));
+            board.tutorialWall(new Vec2(2, -1));
+        }
+        if (step > 13) {
+            board.captureTiles(P[0], 'NorthWest');
+        }
+        if (step > 15) {
+            dpad.rotate('CW');
+        }
+        if (step > 16) {
+            dpad.rotate('CW');
+        }
+        if (step > 17) {
+            dpad.rotate('CW');
+        }
+        if (step > 18) {
+            dpad.rotate('CW');
+        }
+        if (step > 19) {
+            board.captureTiles(P[1], 'SouthEast');
+        }
+        if (step > 20) {
+            board.captureTiles(P[0], 'NorthEast');
+        }
+        if (step > 21) {
+            board.captureTiles(P[1], 'SouthWest');
+        }
+        if (step > 22) {
+            board.captureTiles(P[1], 'NorthEast');
+        }
+        if ((step >= 3 && step <= 6) || (step >= 10 && step <= 11) || (step >= 15 && step <= 19)) {
+            return dpad;
+        }
         return board;
     }
     draw(ctx: CanvasRenderingContext2D): void {
@@ -861,7 +951,7 @@ export class Hexles implements Drawable {
                 break;
             }
             case ('Help'): {
-                Hexles.header.setText('Tutorial (' + (Hexles.helpPage + 1) + ')');
+                Hexles.header.setText('Tutorial');
                 Hexles.header.draw(ctx);
                 Hexles.helpText.draw(ctx);
                 Hexles.tipText.draw(ctx);
