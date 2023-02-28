@@ -465,9 +465,21 @@ class Game implements Drawable {
         } while (!this.board.hasLegalMoves(this.currPlayer()) && counter < this.players.length);
         if (this.isGameOver()) {
             this.turnText.setText('');
-            this.gameOverText = new Text(
-                this.players.map(player => player.getName() + ' captured ' + this.board.numTilesOwnedBy(player) + ' tiles').join('\n'),
-                12, new Vec2(0.1, 0.1), true);
+            const playerSortByScore: (string | number)[][] = this.players
+                .map(player => [player.getName(), this.board.numTilesOwnedBy(player)])
+                .sort((a, b) => +b[1] - +a[1]);
+            const highScore: number = +playerSortByScore[0][1],
+                winners: string[] = playerSortByScore
+                    .filter(p => p[1] === highScore)
+                    .map(p => <string>p[0]);
+            let winnerText = '';
+            if (winners.length === 1) {
+                winnerText = 'Winner! ' + winners[0] + ' captured ' + highScore + ' tiles.';
+            } else {
+                winnerText = 'Tie for ' + highScore + ' tiles!\n' + winners.join(', ');
+            }
+            winnerText += '\n\nPress space to close this message\nor ESC to quit.';
+            this.gameOverText = new Text(winnerText, 12, new Vec2(0.1, 0.1), true);
         } else {
             this.turnText.setText('Turn ' + this.turnNumber + ': ' + this.currPlayer().getName());
             this.aiInput();
@@ -551,7 +563,7 @@ export class Hexles implements Drawable {
     private static helpPage: number;
     private static readonly header: Text = new Text('', 24, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
     private static readonly tipText: Text = new Text('', 12, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
-    private static readonly setting: Text = new Text('< 0 >', 12, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
+    private static readonly setting: Text = new Text('< 1 >', 12, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
     private static readonly helpText: Text = new Text('', 12, new Vec2(0.05, 0.2));
     private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
