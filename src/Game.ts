@@ -12,7 +12,7 @@ type Input = MenuMove | Rotation | 'select' | 'back';
 /**
  * Represents any player in the game.
  */
-class Player {
+class Player implements Drawable {
     private static readonly ColorMap: { [K in Color]: { readonly code: string, inUse: boolean } } = {
         'Red': { code: '#F00', inUse: false },
         'Orange': { code: '#F80', inUse: false },
@@ -22,6 +22,7 @@ class Player {
         'Blue': { code: '#00F', inUse: false },
         'Violet': { code: '#C0F', inUse: false },
     };
+    private readonly dPad: DPad;
     /**
      * Create a new player.
      */
@@ -34,6 +35,7 @@ class Player {
             this.color = Math2.selectRandom(unusedColors);
         }
         Player.ColorMap[this.color].inUse = true;
+        this.dPad = new DPad(this);
     }
     /**
      * Reset the static class values.
@@ -59,6 +61,21 @@ class Player {
     public getName(): string {
         return (this.isAI ? '[AI] ' : '') + this.color;
     }
+    /**
+     * Rotate this player's `DPad` left (CW) or right (CCW)
+     */
+    public rotate(way: Rotation): void {
+        this.dPad.rotate(way);
+    }
+    /**
+     * Return the direction currently selected by this player's `DPad`
+     */
+    public getDirection(): Direction {
+        return this.dPad.getDirection();
+    }
+    draw(ctx: CanvasRenderingContext2D): void {
+        this.dPad.draw(ctx);
+    }
 }
 
 /**
@@ -83,7 +100,7 @@ class Tile extends Hexagon implements Drawable {
         super(new Vec2(center.x * 3 / 2 * Tile.size, (center.x + 2 * center.y) * Math.sqrt(3) / 2 * Tile.size), Tile.size);
     }
     /**
-     * Determine if tis tile has yet to be captured.
+     * Determine if this tile has yet to be captured.
      */
     public isNeutral(): boolean {
         return this.owner === undefined && !this.isWall;
@@ -278,6 +295,67 @@ class DPad extends Board {
 }
 
 /**
+ * An interface that manages and displays the turn order.
+ */
+class TurnOrder implements Drawable {
+    private readonly tiles: Tile[];
+    private currentPlayer: number;
+    private turnNumber: number;
+    constructor(private readonly players: Player[], private readonly board: Board, private readonly normalizedCenter: Vec2) {
+        this.tiles = players.map((_player, i) => new Tile(new Vec2(0, Math.floor(i - players.length / 2))));
+        this.currentPlayer = -1;
+        this.turnNumber = 0;
+    }
+    /**
+     * Advance to the next player or turn.
+     */
+    public advance(): void {
+        let counter = 0;
+        do {
+            counter++;
+            this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+            if (this.currentPlayer === 0) {
+                this.turnNumber++; // Note: increment turn number when player ID loops back to 0
+            }
+        } while (!this.board.hasLegalMoves(this.getCurrentPlayer()) && counter < this.players.length);
+    }
+    /**
+     * Return the player whose turn it currently is.
+     */
+    public getCurrentPlayer(): Player {
+        return this.players[this.currentPlayer];
+    }
+    /**
+     * Return the direction of the current player's `DPad`
+     */
+    public getCurrentDirection(): Direction {
+        return this.getCurrentPlayer().getDirection();
+    }
+    /**
+     * Return some familiar text to display for the current turn information.
+     */
+    public getTurnText(): string {
+        return 'Turn ' + this.turnNumber + ': ' + this.getCurrentPlayer().getName();
+    }
+    /**
+     * Determine if no players have any legal moves left.
+     */
+    public isGameOver(): boolean {
+        return !this.players.some(player => this.board.hasLegalMoves(player));
+    }
+    draw(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        ctx.translate(this.normalizedCenter.x * ctx.canvas.width, this.normalizedCenter.y * ctx.canvas.height);
+        this.tiles.forEach((tile, i) => {
+            tile.forceCapture(this.players[(i + this.currentPlayer) % this.players.length]);
+            tile.draw(ctx);
+        });
+        ctx.restore();
+        this.getCurrentPlayer().draw(ctx);
+    }
+}
+
+/**
  * Represents some text to render on the game surface.
  */
 class Text implements Drawable {
@@ -309,8 +387,6 @@ class Text implements Drawable {
     }
 }
 
-// TODO: create a turn order interface
-
 /**
  * Stores all the game's core logic.
  */
@@ -319,11 +395,9 @@ class Game implements Drawable {
     private static readonly MAX_PLAYERS: number = 6;
     private readonly board: Board;
     private readonly players: Player[];
-    private readonly dPads: DPad[];
     private paused: boolean;
-    private turnNumber: number;
-    private currentPlayer: number;
     private readonly turnText: Text;
+    private readonly turnOrder: TurnOrder;
     private gameOverText: Text | undefined;
     /**
      * Start a new game with specified parameters.
@@ -331,10 +405,8 @@ class Game implements Drawable {
     constructor(numHumans: number, numAI: number, boardSize: number, favoriteColor: Color, spawnMode: SpawnMode, wallDensity: number) {
         Player.reset();
         this.players = [];
-        this.dPads = [];
         this.paused = false;
-        this.turnNumber = 0;
-        this.currentPlayer = -1;
+        this.board = new Board(boardSize, wallDensity);
         this.turnText = new Text('Start game', 12, new Vec2(0.01, 0.01));
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
@@ -345,8 +417,7 @@ class Game implements Drawable {
         for (let i = 0; i < numAI; i++) {
             this.players.push(new Player(favoriteColor, true));
         }
-        this.players.forEach(player => this.dPads.push(new DPad(player)));
-        this.board = new Board(boardSize, wallDensity);
+        this.turnOrder = new TurnOrder(this.players, this.board, new Vec2(0.1, 0.5));
         this.spawn(spawnMode);
         this.nextTurn();
     }
@@ -402,24 +473,24 @@ class Game implements Drawable {
      * Accept human keyboard input.
      */
     public humanInput(rotation: Rotation): void {
-        if (!this.currPlayer().isAI) {
-            this.dPads[this.currentPlayer].rotate(rotation);
+        if (!this.turnOrder.getCurrentPlayer().isAI) {
+            this.turnOrder.getCurrentPlayer().rotate(rotation);
         }
     }
     /**
      * Make a selection.
      */
     public humanSelect(): void {
-        if (this.isGameOver()) {
+        if (this.turnOrder.isGameOver()) {
             this.gameOverText = undefined;
-        } else if (!this.currPlayer().isAI) {
+        } else if (!this.turnOrder.getCurrentPlayer().isAI) {
             this.takeTurn();
         }
     }
     private aiInput(): void {
-        if (this.currPlayer().isAI) {
+        if (this.turnOrder.getCurrentPlayer().isAI) {
             const bucketNames: Direction[] = ['North', 'NorthEast', 'NorthWest', 'South', 'SouthEast', 'SouthWest'],
-                buckets: number[] = bucketNames.map(name => this.board.captureWeight(this.currPlayer(), name)),
+                buckets: number[] = bucketNames.map(name => this.board.captureWeight(this.turnOrder.getCurrentPlayer(), name)),
                 selectedDirection = bucketNames[Math2.selectRandomBucket(buckets)]; // Note: is `undefined` when there are no legal moves
             let thinkTicks = 5, selectTicks = 5;
             const aiTick = setInterval(() => {
@@ -427,8 +498,8 @@ class Game implements Drawable {
                     // Do nothing.
                 } else if (thinkTicks > 0) {
                     thinkTicks--;
-                } else if (this.currDir() !== selectedDirection) {
-                    this.dPads[this.currentPlayer].rotate('CW');
+                } else if (this.turnOrder.getCurrentDirection() !== selectedDirection) {
+                    this.turnOrder.getCurrentPlayer().rotate('CW');
                 } else if (selectTicks > 0) {
                     selectTicks--;
                 } else {
@@ -438,18 +509,12 @@ class Game implements Drawable {
             }, 100);
         }
     }
-    private currPlayer(): Player {
-        return this.players[this.currentPlayer];
-    }
-    private currDir(): Direction {
-        return this.dPads[this.currentPlayer].getDirection();
-    }
     /**
      * This function attempts to capture tiles, and on success, advances to the next turn.
      */
     private takeTurn(): void {
-        if (this.board.captureWeight(this.currPlayer(), this.currDir()) > 0) {
-            this.board.captureTiles(this.currPlayer(), this.currDir());
+        if (this.board.captureWeight(this.turnOrder.getCurrentPlayer(), this.turnOrder.getCurrentDirection()) > 0) {
+            this.board.captureTiles(this.turnOrder.getCurrentPlayer(), this.turnOrder.getCurrentDirection());
             this.nextTurn();
         }
     }
@@ -457,15 +522,8 @@ class Game implements Drawable {
      * This function forces the next turn and does not capture.
      */
     private nextTurn(): void {
-        let counter = 0;
-        do {
-            counter++;
-            this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
-            if (this.currentPlayer === 0) {
-                this.turnNumber++; // Note: increment turn number when player ID loops back to 0
-            }
-        } while (!this.board.hasLegalMoves(this.currPlayer()) && counter < this.players.length);
-        if (this.isGameOver()) {
+        this.turnOrder.advance();
+        if (this.turnOrder.isGameOver()) {
             this.turnText.setText('');
             const playerSortByScore: (string | number)[][] = this.players
                 .map(player => [player.getName(), this.board.numTilesOwnedBy(player)])
@@ -473,7 +531,7 @@ class Game implements Drawable {
             const highScore: number = +playerSortByScore[0][1],
                 winners: string[] = playerSortByScore
                     .filter(p => p[1] === highScore)
-                    .map(p => <string>p[0]);
+                    .map(p => p[0] as string);
             let winnerText = '';
             if (winners.length === 1) {
                 winnerText = 'Winner! ' + winners[0] + ' captured ' + highScore + ' tiles.';
@@ -483,27 +541,16 @@ class Game implements Drawable {
             winnerText += '\n\nPress space to close this message\nor ESC to quit.';
             this.gameOverText = new Text(winnerText, 12, new Vec2(0.1, 0.1), true);
         } else {
-            this.turnText.setText('Turn ' + this.turnNumber + ': ' + this.currPlayer().getName());
+            this.turnText.setText(this.turnOrder.getTurnText());
             this.aiInput();
         }
     }
-    /**
-     * Determine if no players have any legal moves left.
-     */
-    private isGameOver(): boolean {
-        for (let player of this.players) {
-            if (this.board.hasLegalMoves(player)) {
-                return false;
-            }
-        }
-        return true;
-    }
     draw(ctx: CanvasRenderingContext2D): void {
         this.board.draw(ctx);
-        if (this.isGameOver()) {
+        if (this.turnOrder.isGameOver()) {
             this.gameOverText?.draw(ctx);
         } else {
-            this.dPads[this.currentPlayer].draw(ctx);
+            this.turnOrder.draw(ctx);
             this.turnText.draw(ctx);
         }
     }
