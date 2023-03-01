@@ -309,6 +309,8 @@ class Text implements Drawable {
     }
 }
 
+// TODO: create a turn order interface
+
 /**
  * Stores all the game's core logic.
  */
@@ -588,6 +590,7 @@ export class Hexles implements Drawable {
         'This game is called Hexles. Play using the\nkeyboard:\n- arrow keys/WASD (move cursor)\n- space/enter (select)\n- ESC/backspace (cancel/pause)\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
         'Hexles is played on\na hexagonal tiled board\nmuch like this one.\n\nThe aim of the game is\nto capture as many\ntiles as possible.\n\nWhen the board is full,\nthe biggest empire wins.',
         'Players (up to 6 total) take turns\ncapturing tiles.\n\nHuman players always go\nfirst before AI players,\nexcept in this tutorial.\n\nAll players can only\ncapture neutral (light\ngray) tiles.',
+        '[AI] Blue just captured tiles at its\nNortheastern border. (That\ntile turned blue.)\n\nNow it\'s your turn (you\nare playing as orange.)',
         'In one turn, players capture tiles in one\nof 6 directions.\n\nUse A/D or the left and\nright arrow keys to rotate\nthis directional input.\nThis shows the direction\nin which to capture tiles.\n\nPress D or the right arrow key to rotate\nthis until it points South.',
         'Good! Keep going.',
         'Almost there.',
@@ -608,7 +611,7 @@ export class Hexles implements Drawable {
         'You captured 2 more tiles and\nblocked [AI] Blue from\nfurther expanding North!',
         '[AI] Blue captured Northeast and is\nnow out of legal moves.\n\nThat means you can\ncapture tiles until you\nrun out of moves, too.',
         'You first capture tiles at your\nSouthwest border.',
-        'Finally, you capture tiles at your\nNortheast border. Capturing\nSoutheast would have\nworked, too.',
+        'Finally, you capture tiles at your\nNortheast border. Capturing\nSoutheast would have\nworked here, too.',
         'No players have any moves left, so it\'s\ngame over. [AI] Blue\ncaptured 7 tiles and\nyou captured 9.\n\nCongratulations, you win\nand officially completed\nthe tutorial!',
     ];
     /**
@@ -869,11 +872,8 @@ export class Hexles implements Drawable {
             dpad: DPad = new DPad(P[1], new Vec2(0.75, 0.5));
         board.spawn(P[0], new Vec2(0, 2));
         board.spawn(P[1], new Vec2(0, -2));
-        if (step > 1) {
+        if (step > 2) {
             board.captureTiles(P[0], 'NorthEast');
-        }
-        if (step > 3) {
-            dpad.rotate('CW');
         }
         if (step > 4) {
             dpad.rotate('CW');
@@ -881,28 +881,28 @@ export class Hexles implements Drawable {
         if (step > 5) {
             dpad.rotate('CW');
         }
-        if (step > 7) {
-            board.captureTiles(P[1], 'South');
-        }
-        if (step > 8) {
-            board.captureTiles(P[0], 'North');
-        }
-        if (step > 10) {
+        if (step > 6) {
             dpad.rotate('CW');
         }
+        if (step > 8) {
+            board.captureTiles(P[1], 'South');
+        }
+        if (step > 9) {
+            board.captureTiles(P[0], 'North');
+        }
         if (step > 11) {
-            board.captureTiles(P[1], 'SouthWest');
+            dpad.rotate('CW');
         }
         if (step > 12) {
+            board.captureTiles(P[1], 'SouthWest');
+        }
+        if (step > 13) {
             board.tutorialWall(new Vec2(-2, 2));
             board.tutorialWall(new Vec2(-1, 1));
             board.tutorialWall(new Vec2(2, -1));
         }
-        if (step > 13) {
+        if (step > 14) {
             board.captureTiles(P[0], 'NorthWest');
-        }
-        if (step > 15) {
-            dpad.rotate('CW');
         }
         if (step > 16) {
             dpad.rotate('CW');
@@ -914,18 +914,21 @@ export class Hexles implements Drawable {
             dpad.rotate('CW');
         }
         if (step > 19) {
-            board.captureTiles(P[1], 'SouthEast');
+            dpad.rotate('CW');
         }
         if (step > 20) {
-            board.captureTiles(P[0], 'NorthEast');
+            board.captureTiles(P[1], 'SouthEast');
         }
         if (step > 21) {
-            board.captureTiles(P[1], 'SouthWest');
+            board.captureTiles(P[0], 'NorthEast');
         }
         if (step > 22) {
+            board.captureTiles(P[1], 'SouthWest');
+        }
+        if (step > 23) {
             board.captureTiles(P[1], 'NorthEast');
         }
-        if ((step >= 3 && step <= 6) || (step >= 10 && step <= 11) || (step >= 15 && step <= 19)) {
+        if ((step >= 4 && step <= 7) || (step >= 11 && step <= 12) || (step >= 16 && step <= 20)) {
             return dpad;
         }
         return board;
