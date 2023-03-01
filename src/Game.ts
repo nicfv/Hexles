@@ -301,8 +301,8 @@ class TurnOrder implements Drawable {
     private readonly tiles: Tile[];
     private currentPlayer: number;
     private turnNumber: number;
-    constructor(private readonly players: Player[], private readonly board: Board, private readonly normalizedCenter: Vec2) {
-        this.tiles = players.map((_player, i) => new Tile(new Vec2(0, Math.floor(i - players.length / 2))));
+    constructor(private readonly players: Player[], private readonly board: Board, private readonly normalizedCenter: Vec2, private readonly suppressDPad: boolean = false) {
+        this.tiles = players.map((_player, i) => new Tile(new Vec2(0, i)));
         this.currentPlayer = -1;
         this.turnNumber = 0;
     }
@@ -351,7 +351,7 @@ class TurnOrder implements Drawable {
             tile.draw(ctx);
         });
         ctx.restore();
-        this.getCurrentPlayer().draw(ctx);
+        this.suppressDPad || this.getCurrentPlayer().draw(ctx);
     }
 }
 
@@ -417,7 +417,7 @@ class Game implements Drawable {
         for (let i = 0; i < numAI; i++) {
             this.players.push(new Player(favoriteColor, true));
         }
-        this.turnOrder = new TurnOrder(this.players, this.board, new Vec2(0.1, 0.5));
+        this.turnOrder = new TurnOrder(this.players, this.board, new Vec2(0.1, 0.25));
         this.spawn(spawnMode);
         this.nextTurn();
     }
@@ -638,6 +638,7 @@ export class Hexles implements Drawable {
         'This game is called Hexles. Play using the\nkeyboard:\n- arrow keys/WASD (move cursor)\n- space/enter (select)\n- ESC/backspace (cancel/pause)\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
         'Hexles is played on\na hexagonal tiled board\nmuch like this one.\n\nThe aim of the game is\nto capture as many\ntiles as possible.\n\nWhen the board is full,\nthe biggest empire wins.',
         'Players (up to 6 total) take turns\ncapturing tiles.\n\nHuman players always go\nfirst before AI players,\nexcept in this tutorial.\n\nAll players can only\ncapture neutral (light\ngray) tiles.',
+        'This interface shows the turn order,\nfrom top to bottom.\n\nThis means that [AI] Blue\ngoes first, then Orange.',
         '[AI] Blue just captured tiles at its\nNortheastern border. (That\ntile turned blue.)\n\nNow it\'s your turn (you\nare playing as orange.)',
         'In one turn, players capture tiles in one\nof 6 directions.\n\nUse A/D or the left and\nright arrow keys to rotate\nthis directional input.\nThis shows the direction\nin which to capture tiles.\n\nPress D or the right arrow key to rotate\nthis until it points South.',
         'Good! Keep going.',
@@ -913,18 +914,17 @@ export class Hexles implements Drawable {
         }
         return choices[(index + choices.length) % choices.length];
     }
-    private static generateTutorialBoard(step: number): Board {
+    private static generateTutorialBoard(step: number): Drawable {
         Player.reset();
-        const P: Player[] = [new Player('Blue', true), new Player('Orange', true)],
+        const P: Player[] = [new Player('Blue', true), new Player('Orange', false)],
             board: Board = new Board(2, 0, new Vec2(0.75, 0.5)),
-            dpad: DPad = new DPad(P[1], new Vec2(0.75, 0.5));
+            dpad: DPad = new DPad(P[1], new Vec2(0.75, 0.5)),
+            turnOrder: TurnOrder = new TurnOrder(P, board, new Vec2(0.75, 0.5), true);
         board.spawn(P[0], new Vec2(0, 2));
         board.spawn(P[1], new Vec2(0, -2));
-        if (step > 2) {
+        turnOrder.advance();
+        if (step > 3) {
             board.captureTiles(P[0], 'NorthEast');
-        }
-        if (step > 4) {
-            dpad.rotate('CW');
         }
         if (step > 5) {
             dpad.rotate('CW');
@@ -932,28 +932,28 @@ export class Hexles implements Drawable {
         if (step > 6) {
             dpad.rotate('CW');
         }
-        if (step > 8) {
-            board.captureTiles(P[1], 'South');
-        }
-        if (step > 9) {
-            board.captureTiles(P[0], 'North');
-        }
-        if (step > 11) {
+        if (step > 7) {
             dpad.rotate('CW');
         }
+        if (step > 9) {
+            board.captureTiles(P[1], 'South');
+        }
+        if (step > 10) {
+            board.captureTiles(P[0], 'North');
+        }
         if (step > 12) {
-            board.captureTiles(P[1], 'SouthWest');
+            dpad.rotate('CW');
         }
         if (step > 13) {
+            board.captureTiles(P[1], 'SouthWest');
+        }
+        if (step > 14) {
             board.tutorialWall(new Vec2(-2, 2));
             board.tutorialWall(new Vec2(-1, 1));
             board.tutorialWall(new Vec2(2, -1));
         }
-        if (step > 14) {
+        if (step > 15) {
             board.captureTiles(P[0], 'NorthWest');
-        }
-        if (step > 16) {
-            dpad.rotate('CW');
         }
         if (step > 17) {
             dpad.rotate('CW');
@@ -965,18 +965,24 @@ export class Hexles implements Drawable {
             dpad.rotate('CW');
         }
         if (step > 20) {
-            board.captureTiles(P[1], 'SouthEast');
+            dpad.rotate('CW');
         }
         if (step > 21) {
-            board.captureTiles(P[0], 'NorthEast');
+            board.captureTiles(P[1], 'SouthEast');
         }
         if (step > 22) {
-            board.captureTiles(P[1], 'SouthWest');
+            board.captureTiles(P[0], 'NorthEast');
         }
         if (step > 23) {
+            board.captureTiles(P[1], 'SouthWest');
+        }
+        if (step > 24) {
             board.captureTiles(P[1], 'NorthEast');
         }
-        if ((step >= 4 && step <= 7) || (step >= 11 && step <= 12) || (step >= 16 && step <= 20)) {
+        if (step === 3) {
+            return turnOrder;
+        }
+        if ((step >= 5 && step <= 8) || (step >= 12 && step <= 13) || (step >= 17 && step <= 21)) {
             return dpad;
         }
         return board;
