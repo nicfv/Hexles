@@ -82,7 +82,7 @@ class Player implements Drawable {
  * Represents a single tile in the game board.
  */
 class Tile extends Hexagon implements Drawable {
-    private static readonly size: number = 10;
+    private static readonly size: number = 20;
     private static readonly DirectionMap: { [K in Direction]: Vec2 } = {
         'North': new Vec2(0, -1),
         'NorthEast': new Vec2(1, -1),
@@ -151,7 +151,7 @@ class Tile extends Hexagon implements Drawable {
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.fillStyle = this.owner?.getColor() ?? (this.isWall ? 'dimgray' : 'lightgray');
         ctx.strokeStyle = 'black';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 4;
         ctx.beginPath();
         this.points.forEach(v => ctx.lineTo(v.x, v.y));
         ctx.closePath();
@@ -359,6 +359,7 @@ class TurnOrder implements Drawable {
  * Represents some text to render on the game surface.
  */
 class Text implements Drawable {
+    private static readonly font: string = 'sono';
     private progress: number = 0;
     constructor(private value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = new Vec2(0, 0), private readonly writing: boolean = false, private readonly style: { align: CanvasTextAlign, base: CanvasTextBaseline } = { align: 'left', base: 'top' }) { }
     /**
@@ -376,11 +377,11 @@ class Text implements Drawable {
         }
         ctx.textAlign = this.style.align;
         ctx.textBaseline = this.style.base;
-        ctx.font = 'bold ' + this.size + 'px monospace';
+        ctx.font = 'bold ' + this.size + 'px ' + Text.font;
         this.value.substring(0, this.progress).split('\n')
             .forEach((line, i) => {
                 ctx.fillStyle = ctx.canvas.style.background;
-                ctx.fillRect(this.normalizedCenter.x * ctx.canvas.width, this.normalizedCenter.y * ctx.canvas.height + i * this.size, ctx.measureText(line).width, 12);
+                ctx.fillRect(this.normalizedCenter.x * ctx.canvas.width, this.normalizedCenter.y * ctx.canvas.height + i * this.size, ctx.measureText(line).width, this.size);
                 ctx.fillStyle = 'black';
                 ctx.fillText(line, this.normalizedCenter.x * ctx.canvas.width, this.normalizedCenter.y * ctx.canvas.height + i * this.size);
             });
@@ -407,7 +408,7 @@ class Game implements Drawable {
         this.players = [];
         this.paused = false;
         this.board = new Board(boardSize, wallDensity);
-        this.turnText = new Text('Start game', 12, new Vec2(0.01, 0.01));
+        this.turnText = new Text('', 22, new Vec2(0.01, 0.01));
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
@@ -539,7 +540,7 @@ class Game implements Drawable {
                 winnerText = 'Tie for ' + highScore + ' tiles!\n' + winners.join(', ');
             }
             winnerText += '\n\nPress space to close this message\nor ESC to quit.';
-            this.gameOverText = new Text(winnerText, 12, new Vec2(0.1, 0.1), true);
+            this.gameOverText = new Text(winnerText, 22, new Vec2(0.1, 0.1), true);
         } else {
             this.turnText.setText(this.turnOrder.getTurnText());
             this.aiInput();
@@ -565,7 +566,7 @@ class Menu extends Text {
      * Create a new list of menu options from an array of items.
      */
     constructor(private readonly items: string[]) {
-        super('', 12, new Vec2(0.5, 0.5), false, { align: 'center', base: 'middle' });
+        super('', 24, new Vec2(0.5, 0.5), false, { align: 'center', base: 'middle' });
         this.selected = 0;
         this.refresh();
     }
@@ -610,11 +611,11 @@ export class Hexles implements Drawable {
     private static currentState: GameState = 'MainMenu';
     private static game: Game;
     private static helpPage: number;
-    private static readonly header: Text = new Text('', 24, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
-    private static readonly tipText: Text = new Text('', 12, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
-    private static readonly setting: Text = new Text('< 1 >', 12, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
-    private static readonly helpText: Text = new Text('', 12, new Vec2(0.05, 0.2));
-    private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 12, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
+    private static readonly header: Text = new Text('', 48, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
+    private static readonly tipText: Text = new Text('', 22, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
+    private static readonly setting: Text = new Text('< 1 >', 22, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
+    private static readonly helpText: Text = new Text('', 22, new Vec2(0.05, 0.2));
+    private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 16, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
     private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Walls', 'Go Back']);
@@ -635,7 +636,7 @@ export class Hexles implements Drawable {
         wallDensity: this.SpawnWallsChoice[0],
     };
     private static readonly TutorialText: string[] = [
-        'This game is called Hexles. Play using the\nkeyboard:\n- arrow keys/WASD (move cursor)\n- space/enter (select)\n- ESC/backspace (cancel/pause)\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
+        'This game is called Hexles. Play using\nthe keyboard:\n- arrow keys/WASD (move cursor)\n- space/enter (select)\n- ESC/backspace (cancel/pause)\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
         'Hexles is played on\na hexagonal tiled board\nmuch like this one.\n\nThe aim of the game is\nto capture as many\ntiles as possible.\n\nWhen the board is full,\nthe biggest empire wins.',
         'Players (up to 6 total) take turns\ncapturing tiles.\n\nHuman players always go\nfirst before AI players,\nexcept in this tutorial.\n\nAll players can only\ncapture neutral (light\ngray) tiles.',
         'This interface shows the turn order,\nfrom top to bottom.\n\nThis means that [AI] Blue\ngoes first, then Orange.\n\nThe colors cycle through\neach turn.',
@@ -652,7 +653,7 @@ export class Hexles implements Drawable {
         'You just captured 2 more tiles!\n\nLet\'s make this more\ninteresting.',
         'The dark gray tiles are walls.\nWalls are obstacles that\ncan\'t be captured or\ntraversed.\n\nWalls can be toggled\non/off in Options.',
         '[AI] Blue captured Northwest.\n\nDespite the 3 tiles on\nits Northwestern border,\nonly 2 tiles were\ncaptured.\n\nCan you figure out the\nnext move?',
-        'Move the cursor to the Southeast position.\n\nRotate the directional\ninput counter clockwise\n(A/left) twice or clockwise\n(D/right) four times.\n\nIn this tutorial you must\nrotate clockwise 4 times.',
+        'Move the cursor to the Southeast\nposition.\n\nRotate the directional\ninput counter clockwise\n(A/left) twice or clockwise\n(D/right) four times.\n\nIn this tutorial you must\nrotate clockwise 4 times.',
         'Rotate it clockwise 3 more times.\n\nPress D/right arrow.',
         'Rotate it clockwise 2 more times.\n\nPress D/right arrow.',
         'Rotate it clockwise 1 more time.\n\nPress D/right arrow.',

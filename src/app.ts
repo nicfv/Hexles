@@ -1,7 +1,7 @@
 import { Canvas } from "./Engine";
 import { Hexles } from "./Game";
 
-const CANV = new Canvas(document.body, 300, 200, 'cornflowerblue', false, true, 50, { width: 600, height: 400 });
+const CANV = new Canvas(document.body, 600, 400, 'cornflowerblue', false, true, 50);
 
 CANV.tick = () => {
     CANV.clear();
