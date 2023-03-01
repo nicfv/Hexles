@@ -578,6 +578,7 @@ export class Hexles implements Drawable {
     private static readonly ColorChoice: Color[] = ['Red', 'Orange', 'Yellow', 'Green', 'Cyan', 'Blue', 'Violet'];
     private static readonly GameModeChoice: string[] = ['Corners', 'Random'];
     private static readonly SpawnWallsChoice: string[] = ['None', 'Light', 'Dense'];
+    private static readonly me: Hexles = new Hexles();
     private static readonly gameSettings: { numHumans: number, numAI: number, size: string, favoriteColor: Color, spawnMode: string, wallDensity: string } = {
         numHumans: this.NumHumanChoice[1],
         numAI: this.NumAIChoice[0],
@@ -932,6 +933,12 @@ export class Hexles implements Drawable {
             return dpad;
         }
         return board;
+    }
+    /**
+     * Return an instance handle of `Hexles` (for drawing.)
+     */
+    public static handle(): Hexles {
+        return this.me;
     }
     draw(ctx: CanvasRenderingContext2D): void {
         switch (Hexles.currentState) {

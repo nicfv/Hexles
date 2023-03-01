@@ -5,7 +5,7 @@ const CANV = new Canvas(document.body, 300, 200, 'cornflowerblue', false, true, 
 
 CANV.tick = () => {
     CANV.clear();
-    CANV.draw(new Hexles());
+    CANV.draw(Hexles.handle());
 };
 
 CANV.onkeydown = key => {
