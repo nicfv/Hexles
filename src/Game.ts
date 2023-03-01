@@ -638,7 +638,7 @@ export class Hexles implements Drawable {
         'This game is called Hexles. Play using the\nkeyboard:\n- arrow keys/WASD (move cursor)\n- space/enter (select)\n- ESC/backspace (cancel/pause)\n\nUse A/D or the arrow keys to navigate\nthrough this tutorial.',
         'Hexles is played on\na hexagonal tiled board\nmuch like this one.\n\nThe aim of the game is\nto capture as many\ntiles as possible.\n\nWhen the board is full,\nthe biggest empire wins.',
         'Players (up to 6 total) take turns\ncapturing tiles.\n\nHuman players always go\nfirst before AI players,\nexcept in this tutorial.\n\nAll players can only\ncapture neutral (light\ngray) tiles.',
-        'This interface shows the turn order,\nfrom top to bottom.\n\nThis means that [AI] Blue\ngoes first, then Orange.',
+        'This interface shows the turn order,\nfrom top to bottom.\n\nThis means that [AI] Blue\ngoes first, then Orange.\n\nThe colors cycle through\neach turn.',
         '[AI] Blue just captured tiles at its\nNortheastern border. (That\ntile turned blue.)\n\nNow it\'s your turn (you\nare playing as orange.)',
         'In one turn, players capture tiles in one\nof 6 directions.\n\nUse A/D or the left and\nright arrow keys to rotate\nthis directional input.\nThis shows the direction\nin which to capture tiles.\n\nPress D or the right arrow key to rotate\nthis until it points South.',
         'Good! Keep going.',
