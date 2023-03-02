@@ -84,12 +84,12 @@ class Player implements Drawable {
 class Tile extends Hexagon implements Drawable {
     private static readonly size: number = 20;
     private static readonly DirectionMap: { [K in Direction]: Vec2 } = {
-        'North': new Vec2(0, -1),
-        'NorthEast': new Vec2(1, -1),
-        'NorthWest': new Vec2(-1, 0),
-        'South': new Vec2(0, 1),
-        'SouthEast': new Vec2(1, 0),
-        'SouthWest': new Vec2(-1, 1),
+        North: { x: 0, y: -1 },
+        NorthEast: { x: 1, y: -1 },
+        NorthWest: { x: -1, y: 0 },
+        South: { x: 0, y: 1 },
+        SouthEast: { x: 1, y: 0 },
+        SouthWest: { x: -1, y: 1 },
     };
     private owner: Player | undefined;
     private isWall: boolean = false;
@@ -97,7 +97,7 @@ class Tile extends Hexagon implements Drawable {
      * Create a new tile centered at `center` (measured in tiles)
      */
     constructor(private readonly center: Vec2) {
-        super(new Vec2(center.x * 3 / 2 * Tile.size, (center.x + 2 * center.y) * Math.sqrt(3) / 2 * Tile.size), Tile.size);
+        super({ x: center.x * 3 / 2 * Tile.size, y: (center.x + 2 * center.y) * Math.sqrt(3) / 2 * Tile.size }, Tile.size);
     }
     /**
      * Determine if this tile has yet to be captured.
@@ -146,7 +146,7 @@ class Tile extends Hexagon implements Drawable {
      * Return the center of the bordering tile in the specified direction.
      */
     public getBorderingTileCenter(direction: Direction): Vec2 {
-        return Vec2.add(this.center, Tile.DirectionMap[direction]);
+        return { x: this.center.x + Tile.DirectionMap[direction].x, y: this.center.y + Tile.DirectionMap[direction].y };
     }
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.fillStyle = this.owner?.getColor() ?? (this.isWall ? 'dimgray' : 'lightgray');
@@ -168,11 +168,11 @@ class Board implements Drawable {
     /**
      * Construct a new game board with a specified size.
      */
-    constructor(public readonly radius: number, wallDensity: number = 0, private readonly normalizedCenter: Vec2 = new Vec2(0.5, 0.5)) {
+    constructor(public readonly radius: number, wallDensity: number = 0, private readonly normalizedCenter: Vec2 = { x: 0.5, y: 0.5 }) {
         for (let x = -radius; x <= radius; x++) {
             for (let y = -radius; y <= radius; y++) {
                 if (Math.abs(x + y) <= radius) {
-                    this.tiles[x + ',' + y] = new Tile(new Vec2(x, y));
+                    this.tiles[x + ',' + y] = new Tile({ x: x, y: y });
                     if (Math.random() < wallDensity) {
                         this.tiles[x + ',' + y].buildWall();
                     }
@@ -266,7 +266,7 @@ class DPad extends Board {
      * Create a new instance of `DPad`
      */
     constructor(private readonly player: Player, overrideCenter?: Vec2) {
-        super(1, 0, overrideCenter ?? new Vec2(0.875, 0.8125));
+        super(1, 0, overrideCenter ?? { x: 0.875, y: 0.8125 });
         this.direction = 'North';
         this.refresh();
     }
@@ -289,7 +289,7 @@ class DPad extends Board {
     }
     private refresh(): void {
         this.clear();
-        this.spawn(this.player, new Vec2(0, 0));
+        this.spawn(this.player, { x: 0, y: 0 });
         this.captureTiles(this.player, this.direction);
     }
 }
@@ -302,7 +302,7 @@ class TurnOrder implements Drawable {
     private currentPlayer: number;
     private turnNumber: number;
     constructor(private readonly players: Player[], private readonly board: Board, private readonly normalizedCenter: Vec2, private readonly suppressDPad: boolean = false) {
-        this.tiles = players.map((_player, i) => new Tile(new Vec2(0, i)));
+        this.tiles = players.map((_player, i) => new Tile({ x: 0, y: i }));
         this.currentPlayer = -1;
         this.turnNumber = 0;
     }
@@ -361,7 +361,7 @@ class TurnOrder implements Drawable {
 class Text implements Drawable {
     private static readonly font: string = 'sono';
     private progress: number = 0;
-    constructor(private value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = new Vec2(0, 0), private readonly writing: boolean = false, private readonly style: { align: CanvasTextAlign, base: CanvasTextBaseline } = { align: 'left', base: 'top' }) { }
+    constructor(private value: string, private readonly size: number = 12, private readonly normalizedCenter: Vec2 = { x: 0, y: 0 }, private readonly writing: boolean = false, private readonly style: { align: CanvasTextAlign, base: CanvasTextBaseline } = { align: 'left', base: 'top' }) { }
     /**
      * Set the text of this `Text` element
      */
@@ -408,7 +408,7 @@ class Game implements Drawable {
         this.players = [];
         this.paused = false;
         this.board = new Board(boardSize, wallDensity);
-        this.turnText = new Text('', 22, new Vec2(0.01, 0.01));
+        this.turnText = new Text('', 22, { x: 0.01, y: 0.01 });
         numHumans = Math2.clamp(numHumans, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, 0, Game.MAX_PLAYERS);
         numAI = Math2.clamp(numAI, Game.MIN_PLAYERS - numHumans, Game.MAX_PLAYERS - numHumans);
@@ -418,7 +418,7 @@ class Game implements Drawable {
         for (let i = 0; i < numAI; i++) {
             this.players.push(new Player(favoriteColor, true));
         }
-        this.turnOrder = new TurnOrder(this.players, this.board, new Vec2(0.1, 0.25));
+        this.turnOrder = new TurnOrder(this.players, this.board, { x: 0.1, y: 0.25 });
         this.spawn(spawnMode);
         this.nextTurn();
     }
@@ -427,17 +427,17 @@ class Game implements Drawable {
             case ('fair'): {
                 const spawnPoints: Vec2[] = [
                     // [0] North
-                    new Vec2(0, -this.board.radius),
+                    { x: 0, y: -this.board.radius },
                     // [1] NorthEast
-                    new Vec2(this.board.radius, -this.board.radius),
+                    { x: this.board.radius, y: -this.board.radius },
                     // [2] SouthEast
-                    new Vec2(this.board.radius, 0),
+                    { x: this.board.radius, y: 0 },
                     // [3] South
-                    new Vec2(0, this.board.radius),
+                    { x: 0, y: this.board.radius },
                     // [4] SouthWest
-                    new Vec2(-this.board.radius, this.board.radius),
+                    { x: -this.board.radius, y: this.board.radius },
                     // [5] NorthWest
-                    new Vec2(-this.board.radius, 0),
+                    { x: -this.board.radius, y: 0 },
                 ], spawnLocations: number[][] = [
                     [0],
                     [0, 3],
@@ -540,7 +540,7 @@ class Game implements Drawable {
                 winnerText = 'Tie for ' + highScore + ' tiles!\n' + winners.join(', ');
             }
             winnerText += '\n\nPress space to close this message\nor ESC to quit.';
-            this.gameOverText = new Text(winnerText, 22, new Vec2(0.1, 0.1), true);
+            this.gameOverText = new Text(winnerText, 22, { x: 0.1, y: 0.1 }, true);
         } else {
             this.turnText.setText(this.turnOrder.getTurnText());
             this.aiInput();
@@ -566,7 +566,7 @@ class Menu extends Text {
      * Create a new list of menu options from an array of items.
      */
     constructor(private readonly items: string[]) {
-        super('', 24, new Vec2(0.5, 0.5), false, { align: 'center', base: 'middle' });
+        super('', 24, { x: 0.5, y: 0.5 }, false, { align: 'center', base: 'middle' });
         this.selected = 0;
         this.refresh();
     }
@@ -611,15 +611,15 @@ export class Hexles implements Drawable {
     private static currentState: GameState = 'MainMenu';
     private static game: Game;
     private static helpPage: number;
-    private static readonly header: Text = new Text('', 48, new Vec2(0.5, 0.1), false, { align: 'center', base: 'middle' });
-    private static readonly tipText: Text = new Text('', 22, new Vec2(0.5, 0.99), true, { align: 'center', base: 'bottom' });
-    private static readonly setting: Text = new Text('< 1 >', 22, new Vec2(0.8, 0.8), false, { align: 'center', base: 'middle' });
-    private static readonly helpText: Text = new Text('', 22, new Vec2(0.05, 0.2));
-    private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 16, new Vec2(0.5, 0.9), false, { align: 'center', base: 'middle' });
+    private static readonly header: Text = new Text('', 48, { x: 0.5, y: 0.1 }, false, { align: 'center', base: 'middle' });
+    private static readonly tipText: Text = new Text('', 22, { x: 0.5, y: 0.99 }, true, { align: 'center', base: 'bottom' });
+    private static readonly setting: Text = new Text('< 1 >', 22, { x: 0.8, y: 0.8 }, false, { align: 'center', base: 'middle' });
+    private static readonly helpText: Text = new Text('', 22, { x: 0.05, y: 0.2 });
+    private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 16, { x: 0.5, y: 0.9 }, false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
     private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Walls', 'Go Back']);
-    private static readonly demoBoard: Board = new Board(1, 0, new Vec2(0.5, 0.3));
+    private static readonly demoBoard: Board = new Board(1, 0, { x: 0.5, y: 0.3 });
     private static readonly NumHumanChoice: number[] = [0, 1, 2, 3, 4, 5, 6];
     private static readonly NumAIChoice: number[] = [0, 1, 2, 3, 4, 5, 6];
     private static readonly BoardSizeChoice: string[] = ['Micro', 'Small', 'Medium', 'Large', 'Huge'];
@@ -918,11 +918,11 @@ export class Hexles implements Drawable {
     private static generateTutorialBoard(step: number): Drawable {
         Player.reset();
         const P: Player[] = [new Player('Blue', true), new Player('Orange', false)],
-            board: Board = new Board(2, 0, new Vec2(0.75, 0.5)),
-            dpad: DPad = new DPad(P[1], new Vec2(0.75, 0.5)),
-            turnOrder: TurnOrder = new TurnOrder(P, board, new Vec2(0.75, 0.5), true);
-        board.spawn(P[0], new Vec2(0, 2));
-        board.spawn(P[1], new Vec2(0, -2));
+            board: Board = new Board(2, 0, { x: 0.75, y: 0.5 }),
+            dpad: DPad = new DPad(P[1], { x: 0.75, y: 0.5 }),
+            turnOrder: TurnOrder = new TurnOrder(P, board, { x: 0.75, y: 0.5 }, true);
+        board.spawn(P[0], { x: 0, y: 2 });
+        board.spawn(P[1], { x: 0, y: -2 });
         turnOrder.advance();
         if (step > 3) {
             board.captureTiles(P[0], 'NorthEast');
@@ -949,9 +949,9 @@ export class Hexles implements Drawable {
             board.captureTiles(P[1], 'SouthWest');
         }
         if (step > 14) {
-            board.tutorialWall(new Vec2(-2, 2));
-            board.tutorialWall(new Vec2(-1, 1));
-            board.tutorialWall(new Vec2(2, -1));
+            board.tutorialWall({ x: -2, y: 2 });
+            board.tutorialWall({ x: -1, y: 1 });
+            board.tutorialWall({ x: 2, y: -1 });
         }
         if (step > 15) {
             board.captureTiles(P[0], 'NorthWest');

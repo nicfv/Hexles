@@ -39,20 +39,9 @@ export class Math2 {
 /**
  * Represents an `(x,y)` coordinate pair.
  */
-export class Vec2 {
-    constructor(public x: number, public y: number) { }
-    /**
-     * Compute the euclidean length of this vector.
-     */
-    public length(): number {
-        return Math.sqrt(this.x ** 2 + this.y ** 2);
-    }
-    /**
-     * `a + b`
-     */
-    public static add(a: Vec2, b: Vec2): Vec2 {
-        return new Vec2(a.x + b.x, a.y + b.y);
-    }
+export interface Vec2 {
+    x: number;
+    y: number;
 }
 
 /**
@@ -70,10 +59,10 @@ export class Hexagon {
         const SIDES: number = 6;
         for (let i = 0; i < SIDES; i++) {
             const ANGLE: number = i / SIDES * 2 * Math.PI;
-            this.points.push(Vec2.add(new Vec2(
-                size * Math.cos(ANGLE),
-                size * Math.sin(ANGLE)
-            ), center));
+            this.points.push({
+                x: size * Math.cos(ANGLE) + center.x,
+                y: size * Math.sin(ANGLE) + center.y,
+            });
         }
     }
 }
