@@ -6,7 +6,7 @@ type Color = 'Red' | 'Orange' | 'Yellow' | 'Lime' | 'Green' | 'Cyan' | 'Blue' | 
 type SpawnMode = 'fair' | 'random';
 type Rotation = 'CW' | 'CCW';
 type MenuMove = 'up' | 'down';
-type GameState = 'MainMenu' | 'Settings' | 'Game' | 'Paused' | 'Help';
+type GameState = 'Hexles' | 'Play' | 'Paused' | 'Tutorial' | 'Settings';
 type Input = MenuMove | Rotation | 'select' | 'back';
 
 /**
@@ -617,7 +617,7 @@ class Menu extends Text {
  * This class contains all the logic necessary to play the Hexles official online board game.
  */
 export class Hexles implements Drawable {
-    private static currentState: GameState = 'MainMenu';
+    private static currentState: GameState = 'Hexles';
     private static game: Game;
     private static helpPage: number;
     private static readonly header: Text = new Text('', 48, { x: 0.5, y: 0.1 }, false, { align: 'center', base: 'middle' });
@@ -625,7 +625,7 @@ export class Hexles implements Drawable {
     private static readonly setting: Text = new Text('< 1 >', 22, { x: 0.8, y: 0.8 }, false, { align: 'center', base: 'middle' });
     private static readonly helpText: Text = new Text('', 22, { x: 0.05, y: 0.2 });
     private static readonly creator: Text = new Text('Created by Nicolas Ventura (c) 2023', 16, { x: 0.5, y: 0.9 }, false, { align: 'center', base: 'middle' });
-    private static readonly mainMenu: Menu = new Menu(['Play', 'Help', 'Options']);
+    private static readonly mainMenu: Menu = new Menu(['Play', 'Tutorial', 'Settings']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
     private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Walls', 'Go Back']);
     private static readonly demoBoard: Board = new Board(1, 0, { x: 0.5, y: 0.3 });
@@ -678,7 +678,7 @@ export class Hexles implements Drawable {
      */
     public static receiveInput(inputType: Input): void {
         switch (this.currentState) {
-            case ('MainMenu'): {
+            case ('Hexles'): {
                 switch (inputType) {
                     case ('down'):
                     case ('up'): {
@@ -688,11 +688,11 @@ export class Hexles implements Drawable {
                                 this.tipText.setText('Play Hexles with the current settings.');
                                 break;
                             }
-                            case ('Help'): {
+                            case ('Tutorial'): {
                                 this.tipText.setText('Learn how to play Hexles with a tutorial.');
                                 break;
                             }
-                            case ('Options'): {
+                            case ('Settings'): {
                                 this.tipText.setText('Customize your gameplay experience!');
                                 break;
                             }
@@ -704,21 +704,19 @@ export class Hexles implements Drawable {
                     }
                     case ('select'): {
                         this.tipText.setText('');
+                        this.currentState = this.mainMenu.getSelected() as GameState;
                         switch (this.mainMenu.getSelected()) {
                             case ('Play'): {
                                 this.game = new Game(this.gameSettings.numHumans, this.gameSettings.numAI, this.BoardSizeChoice.indexOf(this.gameSettings.size) + 1, this.gameSettings.favoriteColor, this.gameSettings.spawnMode === 'Corners' ? 'fair' : 'random', this.SpawnWallsChoice.indexOf(this.gameSettings.wallDensity) / 6);
-                                this.currentState = 'Game';
                                 break;
                             }
-                            case ('Help'): {
+                            case ('Tutorial'): {
                                 this.helpPage = 0;
-                                this.currentState = 'Help';
                                 this.helpText.setText(this.TutorialText[this.helpPage]);
                                 this.tipText.setText('Press ESC/backspace any time to exit.');
                                 break;
                             }
-                            case ('Options'): {
-                                this.currentState = 'Settings';
+                            case ('Settings'): {
                                 this.tipText.setText('Use left and right to change settings.');
                                 break;
                             }
@@ -809,7 +807,7 @@ export class Hexles implements Drawable {
                     case ('select'): {
                         switch (this.settings.getSelected()) {
                             case ('Go Back'): {
-                                this.currentState = 'MainMenu';
+                                this.currentState = 'Hexles';
                                 this.tipText.setText('');
                                 break;
                             }
@@ -817,14 +815,14 @@ export class Hexles implements Drawable {
                         break;
                     }
                     case ('back'): {
-                        this.currentState = 'MainMenu';
+                        this.currentState = 'Hexles';
                         this.tipText.setText('');
                         break;
                     }
                 }
                 break;
             }
-            case ('Game'): {
+            case ('Play'): {
                 switch (inputType) {
                     case ('CCW'):
                     case ('CW'): {
@@ -864,11 +862,11 @@ export class Hexles implements Drawable {
                         switch (this.pauseMenu.getSelected()) {
                             case ('Resume'): {
                                 this.game.unpause();
-                                this.currentState = 'Game';
+                                this.currentState = 'Play';
                                 break;
                             }
                             case ('Quit'): {
-                                this.currentState = 'MainMenu';
+                                this.currentState = 'Hexles';
                                 break;
                             }
                         }
@@ -876,13 +874,13 @@ export class Hexles implements Drawable {
                     }
                     case ('back'): {
                         this.game.unpause();
-                        this.currentState = 'Game';
+                        this.currentState = 'Play';
                         break;
                     }
                 }
                 break;
             }
-            case ('Help'): {
+            case ('Tutorial'): {
                 switch (inputType) {
                     case ('select'):
                     case ('CW'): {
@@ -895,7 +893,7 @@ export class Hexles implements Drawable {
                     }
                     case ('back'): {
                         this.tipText.setText('');
-                        this.currentState = 'MainMenu';
+                        this.currentState = 'Hexles';
                         break;
                     }
                 }
@@ -903,7 +901,7 @@ export class Hexles implements Drawable {
                     this.helpText.setText(this.TutorialText[this.helpPage]);
                 } else {
                     this.tipText.setText('');
-                    this.currentState = 'MainMenu';
+                    this.currentState = 'Hexles';
                 }
                 break;
             }
@@ -1004,9 +1002,9 @@ export class Hexles implements Drawable {
         return this.me;
     }
     draw(ctx: CanvasRenderingContext2D): void {
+        Hexles.header.setText(Hexles.currentState);
         switch (Hexles.currentState) {
-            case ('MainMenu'): {
-                Hexles.header.setText('Hexles');
+            case ('Hexles'): {
                 Hexles.header.draw(ctx);
                 Hexles.demoBoard.draw(ctx);
                 Hexles.mainMenu.draw(ctx);
@@ -1015,7 +1013,6 @@ export class Hexles implements Drawable {
                 break;
             }
             case ('Settings'): {
-                Hexles.header.setText('Settings');
                 Hexles.header.draw(ctx);
                 Hexles.demoBoard.draw(ctx);
                 Hexles.settings.draw(ctx);
@@ -1023,20 +1020,18 @@ export class Hexles implements Drawable {
                 Hexles.tipText.draw(ctx);
                 break;
             }
-            case ('Game'): {
+            case ('Play'): {
                 Hexles.game.draw(ctx);
                 break;
             }
             case ('Paused'): {
-                Hexles.header.setText('Paused');
                 Hexles.header.draw(ctx);
                 Hexles.demoBoard.draw(ctx);
                 Hexles.pauseMenu.draw(ctx);
                 Hexles.tipText.draw(ctx);
                 break;
             }
-            case ('Help'): {
-                Hexles.header.setText('Tutorial');
+            case ('Tutorial'): {
                 Hexles.header.draw(ctx);
                 Hexles.helpText.draw(ctx);
                 Hexles.tipText.draw(ctx);
