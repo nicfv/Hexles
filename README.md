@@ -3,7 +3,7 @@ This is the official repository for the Hexles online board game.
 
 The game is accessible through [play.hexles.com](https://play.hexles.com/).
 
-### Setup Project
+### Perform First-Time Setup
 ```sh
 npm run setup
 ```
