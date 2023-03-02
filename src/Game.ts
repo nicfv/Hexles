@@ -2,7 +2,7 @@ import { Drawable } from "./Engine";
 import { Hexagon, Math2, Vec2 } from "./Geometry";
 
 type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | 'NorthEast';
-type Color = 'Red' | 'Orange' | 'Yellow' | 'Green' | 'Cyan' | 'Blue' | 'Violet';
+type Color = 'Red' | 'Orange' | 'Yellow' | 'Lime' | 'Green' | 'Cyan' | 'Blue' | 'Violet' | 'Brown' | 'Teal';
 type SpawnMode = 'fair' | 'random';
 type Rotation = 'CW' | 'CCW';
 type MenuMove = 'up' | 'down';
@@ -16,11 +16,14 @@ class Player implements Drawable {
     private static readonly ColorMap: { [K in Color]: { readonly code: string, inUse: boolean } } = {
         'Red': { code: '#F00', inUse: false },
         'Orange': { code: '#F80', inUse: false },
-        'Yellow': { code: '#CD1', inUse: false },
+        'Yellow': { code: '#AB1', inUse: false },
+        'Lime': { code: '#1F0', inUse: false },
         'Green': { code: '#080', inUse: false },
         'Cyan': { code: '#0CF', inUse: false },
         'Blue': { code: '#00F', inUse: false },
         'Violet': { code: '#C0F', inUse: false },
+        'Brown': { code: '#841', inUse: false },
+        'Teal': { code: '#488', inUse: false },
     };
     private readonly dPad: DPad;
     /**
@@ -28,7 +31,7 @@ class Player implements Drawable {
      */
     constructor(private readonly color: Color, public readonly isAI: boolean) {
         if (Player.ColorMap[color].inUse) {
-            const unusedColors = Object.entries(Player.ColorMap).filter(([, val]) => !val.inUse).map(([key,]) => <Color>key);
+            const unusedColors = Object.entries(Player.ColorMap).filter(([, val]) => !val.inUse).map(([key,]) => key as Color);
             if (unusedColors.length === 0) {
                 throw new Error('All colors are in use.');
             }
@@ -42,6 +45,12 @@ class Player implements Drawable {
      */
     public static reset(): void {
         Object.values(Player.ColorMap).forEach(val => val.inUse = false);
+    }
+    /**
+     * Return the list of all available colors to choose from.
+     */
+    public static getColorList(): Color[] {
+        return Object.keys(this.ColorMap) as Color[];
     }
     /**
      * Determine if this player is the object represented by `other`.
@@ -623,7 +632,7 @@ export class Hexles implements Drawable {
     private static readonly NumHumanChoice: number[] = [0, 1, 2, 3, 4, 5, 6];
     private static readonly NumAIChoice: number[] = [0, 1, 2, 3, 4, 5, 6];
     private static readonly BoardSizeChoice: string[] = ['Micro', 'Small', 'Medium', 'Large', 'Huge'];
-    private static readonly ColorChoice: Color[] = ['Red', 'Orange', 'Yellow', 'Green', 'Cyan', 'Blue', 'Violet'];
+    private static readonly ColorChoice: Color[] = Player.getColorList();
     private static readonly GameModeChoice: string[] = ['Corners', 'Random'];
     private static readonly SpawnWallsChoice: string[] = ['None', 'Light', 'Dense'];
     private static readonly me: Hexles = new Hexles();
