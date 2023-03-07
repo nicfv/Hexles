@@ -17,7 +17,7 @@ class Player implements Drawable {
     private static readonly ColorMap: { [K in Color]: { readonly code: string, inUse: boolean } } = {
         'Red': { code: '#F00', inUse: false },
         'Orange': { code: '#F80', inUse: false },
-        'Yellow': { code: '#AB1', inUse: false },
+        'Yellow': { code: '#BC1', inUse: false },
         'Lime': { code: '#1F0', inUse: false },
         'Green': { code: '#080', inUse: false },
         'Cyan': { code: '#0CF', inUse: false },
@@ -76,6 +76,12 @@ class Player implements Drawable {
      */
     public rotate(way: Rotation): void {
         this.dPad.rotate(way);
+    }
+    /**
+     * Rotate this player's `DPad` once to the specified direction.
+     */
+    public rotateTo(direction: Direction): void {
+        this.dPad.rotateTo(direction);
     }
     /**
      * Return the direction currently selected by this player's `DPad`
@@ -290,6 +296,19 @@ class DPad extends Board {
             nextIdx = (directionIdx + numDirections + dx) % numDirections;
         this.direction = DPad.DirectionOrderCW[nextIdx];
         this.refresh();
+    }
+    /**
+     * Rotate this dPad once to the specified direction.
+     */
+    public rotateTo(direction: Direction): void {
+        const currentIdx = DPad.DirectionOrderCW.indexOf(this.getDirection()),
+            destinationIdx = DPad.DirectionOrderCW.indexOf(direction),
+            diff = destinationIdx - currentIdx,
+            numDirections = DPad.DirectionOrderCW.length,
+            absDiff = diff >= 0 ? diff : (diff + numDirections);
+        if (absDiff > 0) {
+            this.rotate(absDiff < numDirections / 2 ? 'CW' : 'CCW');
+        }
     }
     /**
      * Return the direction currently selected by this `DPad`
@@ -510,7 +529,7 @@ class Game implements Drawable {
                 } else if (thinkTicks > 0) {
                     thinkTicks--;
                 } else if (this.turnOrder.getCurrentDirection() !== selectedDirection) {
-                    this.turnOrder.getCurrentPlayer().rotate('CW');
+                    this.turnOrder.getCurrentPlayer().rotateTo(selectedDirection);
                 } else if (selectTicks > 0) {
                     selectTicks--;
                 } else {
@@ -625,7 +644,7 @@ export class Hexles implements Drawable {
     private static readonly tipText: Text = new Text('', 22, { x: 0.5, y: 0.99 }, true, { align: 'center', base: 'bottom' });
     private static readonly setting: Text = new Text('< 1 >', 22, { x: 0.8, y: 0.8 }, false, { align: 'center', base: 'middle' });
     private static readonly helpText: Text = new Text('', 22, { x: 0.05, y: 0.2 });
-    private static readonly creator: Text = new Text('v' + version + ' Created by Nicolas Ventura (c) 2023', 16, { x: 0.5, y: 0.9 }, false, { align: 'center', base: 'middle' });
+    private static readonly creator: Text = new Text('v' + version + ' Created by Nicolas Ventura (c) ' + new Date().getFullYear(), 16, { x: 0.5, y: 0.9 }, false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Tutorial', 'Settings']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
     private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Walls', 'Go Back']);
@@ -867,6 +886,7 @@ export class Hexles implements Drawable {
                                 break;
                             }
                             case ('Quit'): {
+                                this.tipText.setText('');
                                 this.currentState = 'Hexles';
                                 break;
                             }
