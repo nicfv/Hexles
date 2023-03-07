@@ -1,6 +1,5 @@
 import { Drawable } from "./Engine";
 import { Hexagon, Math2, Vec2 } from "./Geometry";
-import version from "./Version";
 
 type Direction = 'North' | 'NorthWest' | 'SouthWest' | 'South' | 'SouthEast' | 'NorthEast';
 type Color = 'Red' | 'Orange' | 'Yellow' | 'Lime' | 'Green' | 'Cyan' | 'Blue' | 'Violet' | 'Brown' | 'Teal';
@@ -641,10 +640,10 @@ export class Hexles implements Drawable {
     private static game: Game;
     private static helpPage: number;
     private static readonly header: Text = new Text('', 48, { x: 0.5, y: 0.1 }, false, { align: 'center', base: 'middle' });
-    private static readonly tipText: Text = new Text('', 22, { x: 0.5, y: 0.99 }, true, { align: 'center', base: 'bottom' });
+    private static readonly tipText: Text = new Text('Use the arrow keys to make a selection.', 22, { x: 0.5, y: 0.99 }, true, { align: 'center', base: 'bottom' });
     private static readonly setting: Text = new Text('< 1 >', 22, { x: 0.8, y: 0.8 }, false, { align: 'center', base: 'middle' });
     private static readonly helpText: Text = new Text('', 22, { x: 0.05, y: 0.2 });
-    private static readonly creator: Text = new Text('v' + version + ' Created by Nicolas Ventura (c) ' + new Date().getFullYear(), 16, { x: 0.5, y: 0.9 }, false, { align: 'center', base: 'middle' });
+    private static readonly creator: Text = new Text('v%VERSION% Created by Nicolas Ventura (c) ' + new Date().getFullYear(), 16, { x: 0.5, y: 0.9 }, false, { align: 'center', base: 'middle' });
     private static readonly mainMenu: Menu = new Menu(['Play', 'Tutorial', 'Settings']);
     private static readonly pauseMenu: Menu = new Menu(['Resume', 'Quit']);
     private static readonly settings: Menu = new Menu(['Human Players', 'AI Players', 'Board Size', 'Favorite Color', 'Spawn Mode', 'Walls', 'Go Back']);

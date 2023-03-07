@@ -34,6 +34,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
+      - name: Update Version
+        run: |
+          VER=$(grep -oE "[0-9]+\.[0-9]+\.[0-9]+" CHANGELOG.md | head -n1)
+          echo "Publishing version ${VER}" >> "${GITHUB_STEP_SUMMARY}"
+          sed -i "s/%VERSION%/${VER}/g" src/*
       - name: Build Project
         run: |
           npm run setup
