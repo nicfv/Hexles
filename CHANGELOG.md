@@ -1,5 +1,9 @@
 # Changes
 
+## 1.0.3
+
+- Simplify the `npm run setup` command
+
 ## 1.0.2
 
 - Start game with brief instruction
