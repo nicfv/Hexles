@@ -1,5 +1,9 @@
 # Changes
 
+## 1.0.4
+
+- Migrate to https://hexles.com/
+
 ## 1.0.3
 
 - Simplify the `npm run setup` command
