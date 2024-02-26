@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This repository automatically updates the official website, [play.hexles.com](https://play.hexles.com/) with the latest version of the game.
+This repository automatically updates the official website, [hexles.com](https://hexles.com/) with the latest version of the game.
 
 ## Reporting a Vulnerability
 
