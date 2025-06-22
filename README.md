@@ -1,7 +1,7 @@
 # Hexles [![Deploy static content to Pages](https://github.com/nicfv/Hexles/actions/workflows/publish.yml/badge.svg)](https://github.com/nicfv/Hexles/actions/workflows/publish.yml)
 This is the official repository for the Hexles online board game.
 
-The game is accessible through [hexles.com](https://hexles.com/).
+The game is accessible through [hexles.nicfv.com](https://hexles.nicfv.com/).
 
 ### Perform First-Time Setup
 ```sh
