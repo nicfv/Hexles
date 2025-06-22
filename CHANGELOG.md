@@ -1,5 +1,11 @@
 # Changes
 
+## 1.0.5
+
+- Update workflow action versions
+- Add `typescript` as a dependency
+- Migrate (back?) to https://hexles.nicfv.com/
+
 ## 1.0.4
 
 - Migrate to https://hexles.com/
