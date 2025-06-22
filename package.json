@@ -4,5 +4,8 @@
         "dev": "tsc && npx esbuild@latest src/app.ts --bundle --watch --outfile=dist/app.js",
         "build": "tsc && npx esbuild@latest src/app.ts --bundle --minify --outfile=dist/app.js",
         "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "typescript": "5.8.3"
     }
 }
